@@ -69,4 +69,5 @@ Note: I find 5 groups to be more than enough. You can change the range if you fe
 * Make an optional feature to show (part of) the directory path of named buffers.
 * Make an optional feature to show uppercase marks in each buffer.
 * Maybe show the Current Working Directory somewhere.
+* Remove buffers that are deleted from groups automatically (use autocmds).
 

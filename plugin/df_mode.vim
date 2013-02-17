@@ -131,14 +131,9 @@ endfunction
 " Sets a buffer as removed. It is only removed from the data structures after
 " at least (&ut/1000) seconds.
 function! DF_RemoveBufferFromGroup(bufnr, group)
-    if has_key(s:tabgroups, a:group) && has_key(s:tabgroups[a:group], a:bufnr)
-        let item = s:tabgroups[a:group][a:bufnr]
-        let item.deleted = 1
-        let item.deleted_time = reltime()
+    if s:RemoveBufferFromGroup(a:bufnr, a:group)
         call s:UpdateTabGroups()
-        return 2
     endif
-    return 0
 endfunction
 
 " Add a buffer to a group, or if it has already been added, remove it from
@@ -293,6 +288,8 @@ endfunction
 
 augroup DistractionFree
     au!
+    " Clean up white space buffers when quitting
+    au QuitPre     * call <SID>WipeWhitespaceBuffers()
     " Updates the highlights in the buffer group view.
     au BufEnter    * call <SID>UpdateHighlighInBufferGroups()
     " Update the green/red buffer names when these exist.
@@ -360,6 +357,16 @@ function! <SID>CloseWindow()
     if !exists('b:whitespacebuffer') && winnr('$') > 3 | wincmd c | endif
 endfunction
 
+function! <SID>WipeWhitespaceBuffers()
+    silent! wincmd o
+    for i in range(1, winnr('$'))
+        if getbufvar(winbufnr(i), 'whitespacebuffer')
+            exe 'bwipe '.winbufnr(i)
+        endif
+    endfor
+endfunction
+
+
 
 
 function! s:UnboundBuffers()
@@ -404,7 +411,7 @@ function! s:GetBuferName(nr)
     let res = fnamemodify(bufname(str2nr(a:nr)), ':p:t')
     if empty(res)
         let res = printf('new:%s   %s', a:nr, s:GetFirstLineOfBuffer(a:nr))
-        let s:transient_items_remain = 1
+
     endif
     return res
 endfunction
@@ -500,9 +507,6 @@ function! s:CleanupGroups()
     for group in keys(s:tabgroups)
         for bufnr in keys(s:tabgroups[group])
             let item = s:tabgroups[group][bufnr]
-            if !buflisted(bufnr)
-                call DF_RemoveBufferFromGroup(bufnr, group)
-            endif
             " Remove old removed items. However, don't delete the buffer that
             " is currently selected (now).
             if item.deleted && s:SecondsSince(item.deleted_time) > (&ut / 1000)
@@ -594,6 +598,16 @@ function! s:UpdateTabGroups()
     endif
     exe from_window.'wincmd w'
     echo ''
+endfunction
+
+function s:RemoveBufferFromGroup(bufnr, group)
+    if has_key(s:tabgroups, a:group) && has_key(s:tabgroups[a:group], a:bufnr)
+        let item = s:tabgroups[a:group][a:bufnr]
+        let item.deleted = 1
+        let item.deleted_time = reltime()
+        return 2
+    endif
+    return 0
 endfunction
 
 
