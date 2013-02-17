@@ -500,6 +500,9 @@ function! s:CleanupGroups()
     for group in keys(s:tabgroups)
         for bufnr in keys(s:tabgroups[group])
             let item = s:tabgroups[group][bufnr]
+            if !buflisted(bufnr)
+                call DF_RemoveBufferFromGroup(bufnr, group)
+            endif
             " Remove old removed items. However, don't delete the buffer that
             " is currently selected (now).
             if item.deleted && s:SecondsSince(item.deleted_time) > (&ut / 1000)
