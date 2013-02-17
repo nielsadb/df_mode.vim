@@ -45,13 +45,14 @@ When you want to use sessions, be sure to set the saved session directory (see e
     endfunction
     
     nnoremap ,d        :call DF_Enable()<CR>
+    nnoremap ,u        :call ToggleShowBufferGroups()<CR>
     nnoremap ,U        :call ToggleAlwaysShowUnbound()<CR>
     nnoremap <Space>   :call DF_GoToNextBuffer(1, 0)<CR>:echo<CR>
-    nnoremap <S-Space> :call DF_GoToNextBuffer(0, 0)<CR>
-    nnoremap <M-Space> :call DF_GoToNextBuffer(1, 1)<CR>
+    nnoremap <S-Space> :call DF_GoToNextBuffer(0, 0)<CR>:echo<CR>
+    nnoremap <M-Space> :call DF_GoToNextBuffer(1, 1)<CR>:echo<CR>
     nnoremap ,R        :call DF_ReadBufferGroups()<CR>
     nnoremap ,W        :call DF_WriteBufferGroups()<CR>
-    nnoremap ,D        :call RemoveBuffersFromGroup()<CR>
+    nnoremap ,DD       :call RemoveBuffersFromGroup()<CR>
     
     for i in range(1, 5)
         exe printf("nnoremap <D-%d> :call DF_ToggleBufferInGroup(bufnr('%%'), %d)<CR>", i, i)
