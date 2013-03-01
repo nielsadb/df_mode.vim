@@ -16,26 +16,79 @@
 "               pathogen/vundle/etc.
 "=============================================================================
 
+" The options explained:
+"
+" main_window_target_width
+" Try to make the middle window (the "main window") this columns wide. Note
+" that due to erratic behavior of Vim it may sometimes be a few columns off.
+"
+" single_window_if_less_than_N_columns_left
+" If after creating the main window there are less columns left than the value
+" of this setting, just leave it at that and make the main window the only
+" window.
+"
+" session_save_directory
+" The file path to the directory where to store session files used by
+" DF_WriteBufferGroups and DF_ReadBufferGroups. You _must_ set this value if
+" you want to use this function. By default the value is set to
+" g:df_session_save_directory, which you can set in your vimrc.
+"
+" buffer_list_shown
+" Set to true if the buffer list is shown on the right of the main window
+" (given that there is enough space). Call DF_Redraw after a change.
+"
+" buffer_list_always_show_ungrouped_buffers
+" Set to true if buffers that are not explicitly added to a group (called
+" "ungrouped buffers", or "#") should always be shown. When set to false this
+" group is only shown when viewing an ungrouped buffer in the main window.
+"
+" buffer_list_empty_lines_before_ungrouped_buffers
+" The amount of padding before the # group. Matter of style.
+"
+" buffer_list_always_show_group_names
+" If set the group names are always shown for non-empty groups. If not set,
+" only show the group names when there is more than one non-empty group.
+"
+" buffer_list_alignment_and_margin
+" Determines left or right alignment as well as how much space to take from
+" the edge of the buffer list window. A non-negative value means left
+" alignment, a negative value means right alignment. The norm of the number
+" defined how many spaces to stay from the alignment edge. Due to some
+" (hidden) mark-up left aligned text is always at least 2 spaces from the
+" edge (so values 0 and 1 are actually meaningless).
+"
+" additional_window_esc_closes_window
+" When opening a second window next to the main window (e.g. for help or
+" search results), pressing ESC will close the window the cursor is in. Since
+" it's impossible to detect mistakes this may actually close your main editing
+" window. Setting this value to false will disable this behavior.
+"
+" buffer_list_group_order_top_bottom
+" The order in which to show groups. Note that these must all be strings, not
+" numbers!
+
 if exists("g:df_mode_version") || &cp
     finish
 endif
 let g:df_mode_version = '0.9'
 
 let s:config = {
-            \ 'main_window_width_target':                 96,
-            \ 'multi_window_slack_threshold':             10,
-            \ 'saved_session_directory':                  '...///...Set me up!...\\\...',
-            \ 'always_show_unbound_buffers':              0,
-            \ 'empty_lines_before_unbound_buffer_group':  2,
-            \ 'always_show_group_titles':                 0,
-            \ 'show_buffer_grous':                        1,
-            \ 'esc_closes_additional_window':             1,
-            \ 'group_order':
+            \ 'main_window_target_width':                          100,
+            \ 'single_window_if_less_than_N_columns_left':         10,
+            \ 'session_save_directory':
+            \        '...///...Set me up!...\\\...',
+            \ 'buffer_list_shown':                                 1,
+            \ 'buffer_list_always_show_ungrouped_buffers':         0,
+            \ 'buffer_list_empty_lines_before_ungrouped_buffers':  2,
+            \ 'buffer_list_always_show_group_names':               0,
+            \ 'buffer_list_alignment_and_margin':                  -2,
+            \ 'additional_window_esc_closes_window':               1,
+            \ 'buffer_list_group_order_top_bottom':
             \        map(range(1, 9), 'v:val.""') + ['0', '#'],
             \ }
 
-if exists('g:df_saved_session_directory')
-    let s:config.saved_session_directory = g:df_saved_session_directory
+if exists('g:df_session_save_directory')
+    let s:config.session_save_directory = g:df_session_save_directory
 endif
 
 function! DF_GetConfig()
@@ -51,11 +104,11 @@ function! DF_Enable()
     colors dclear
     set laststatus=2
     set statusline=%{DF_MinimalStatusLineInfo()}
-    if s:config.esc_closes_additional_window
+    if s:config.additional_window_esc_closes_window
         nnoremap <Esc> :call <SID>CloseWindow()<CR>:echo<CR>
     endif
 
-    let slack = &columns - s:config.main_window_width_target
+    let slack = &columns - s:config.main_window_target_width
     " Note that this will obliterate buffers with bufhidden=wipe.
     silent! wincmd o
 
@@ -69,7 +122,7 @@ function! DF_Enable()
         endif
     endfor
 
-    if slack > s:config.multi_window_slack_threshold
+    if slack > s:config.single_window_if_less_than_N_columns_left
         if existing_left_buffer
             wincmd v
             exe 'buffer '.existing_left_buffer
@@ -157,11 +210,11 @@ function! DF_WriteBufferGroups()
             call add(ls, prefix.fnamemodify(bufname(item.bufnr), ':p'))
         endfor
     endfor
-    call writefile(ls, fnamemodify(s:config.saved_session_directory . session_name, ':p'))
+    call writefile(ls, fnamemodify(s:config.session_save_directory . session_name, ':p'))
 endfunction
 
 function! DF_ReadBufferGroups()
-    let sessions = glob(s:config.saved_session_directory . '*', 0, 1)
+    let sessions = glob(s:config.session_save_directory . '*', 0, 1)
     if empty(sessions)
         echo 'No sessions saved.'
         return
@@ -226,7 +279,7 @@ function! DF_GoToNextBuffer(forward, skip_groups)
     if a:skip_groups
         if (a:forward && cur_buf_idx == (len(buffers_by_name)-1)) ||
                     \  (!a:forward && cur_buf_idx == 0)
-            if !s:config.always_show_unbound_buffers && has_key(s:tabgroups, '#')
+            if !s:config.buffer_list_always_show_ungrouped_buffers && has_key(s:tabgroups, '#')
                 unlet s:tabgroups['#']
             endif
             let groups_by_name = DF_GetSortedGroups()
@@ -288,8 +341,10 @@ endfunction
 
 augroup DistractionFree
     au!
+if has('gui_macvim')
     " Clean up white space buffers when quitting
     au QuitPre     * call <SID>WipeWhitespaceBuffers()
+endif
     " Updates the highlights in the buffer group view.
     au BufEnter    * call <SID>UpdateHighlighInBufferGroups()
     " Update the green/red buffer names when these exist.
@@ -426,7 +481,8 @@ function! <SID>SortBuffers(a, b)
 endfunction
 
 function! <SID>SortGroups(a, b)
-    return index(s:config.group_order, a:a) - index(s:config.group_order, a:b)
+    return index(s:config.buffer_list_group_order_top_bottom, a:a)
+                \ - index(s:config.buffer_list_group_order_top_bottom, a:b)
 endfunction
 
 function! s:SetWindowWidth(width)
@@ -456,7 +512,7 @@ endfunction
 function! DF_MinimalStatusLineInfo()
     if winnr('$') == 3
         if exists('b:rightwhitespacebuffer')
-            if !s:config.show_buffer_grous
+            if !s:config.buffer_list_shown
                 return fnamemodify(bufname(winbufnr(s:lastwindow)),':p:t')
             endif
         endif
@@ -484,17 +540,17 @@ endfunction
 
 function! s:SetBufferGroupSyntax()
     syn clear
-    syn match TabGroupGroupPrefix     "^G "
-    syn match TabGroupGroupPrefixNC   "^g "
-    syn match TabGroupPrefix          "^[Ccad_] "
-    syn match TabGroupTitle           "^G \S\+\W*$"hs=s+2 contains=TabGroupGroupPrefix
-    syn match TabGroupTitleNC         "^g \S\+\W*$"hs=s+2 contains=TabGroupGroupPrefixNC
-    syn match TabGroupBufferNew       "^a .\+$"hs=s+2 contains=TabGroupPrefix
-    syn match TabGroupBufferCurrent   "^C .\+$"hs=s+2 contains=TabGroupPrefix
-    syn match TabGroupBufferCurrentNC "^c .\+$"hs=s+2 contains=TabGroupPrefix
-    syn match TabGroupBufferDeleted   "^d .\+$"hs=s+2 contains=TabGroupPrefix
-    syn match TabGroupBufferNC        "^_ .\+$"hs=s+2 contains=TabGroupPrefix
-    syn match TabGroupBufferNewNC     "^_ new:\d\+   .\+$"hs=s+2 contains=TabGroupPrefix
+    syn match TabGroupGroupPrefix     "^\s*G "
+    syn match TabGroupGroupPrefixNC   "^\s*g "
+    syn match TabGroupPrefix          "^\s*[Ccad_] "
+    syn match TabGroupTitle           "^\s*G \S\+\W*$"hs=s+2 contains=TabGroupGroupPrefix
+    syn match TabGroupTitleNC         "^\s*g \S\+\W*$"hs=s+2 contains=TabGroupGroupPrefixNC
+    syn match TabGroupBufferNew       "^\s*a .\+$"hs=s+2 contains=TabGroupPrefix
+    syn match TabGroupBufferCurrent   "^\s*C .\+$"hs=s+2 contains=TabGroupPrefix
+    syn match TabGroupBufferCurrentNC "^\s*c .\+$"hs=s+2 contains=TabGroupPrefix
+    syn match TabGroupBufferDeleted   "^\s*d .\+$"hs=s+2 contains=TabGroupPrefix
+    syn match TabGroupBufferNC        "^\s*_ .\+$"hs=s+2 contains=TabGroupPrefix
+    syn match TabGroupBufferNewNC     "^\s*_ new:\d\+   .\+$"hs=s+2 contains=TabGroupPrefix
 endfunction
 
 " Gets the seconds part of a reltime object.
@@ -523,16 +579,21 @@ endfunction
 function! s:RenderTabGroups()
     let s:transient_items_remain = 0
 
+    let alignment = ''
+    if s:config.buffer_list_alignment_and_margin > 2
+        let alignment = repeat(' ', s:config.buffer_list_alignment_and_margin - 2)
+    endif
+
     for group in DF_GetSortedGroups()
 
         " Hide # unless that is the current group, or it is set to always show.
         if group == '#'
-            if  s:highlighted_group != '#' && !s:config.always_show_unbound_buffers
+            if  s:highlighted_group != '#' && !s:config.buffer_list_always_show_ungrouped_buffers
                 continue
             else
                 " Some extra whitespace before the # group.
                 if len(s:tabgroups) > 1
-                    for i in range(s:config.empty_lines_before_unbound_buffer_group)
+                    for i in range(s:config.buffer_list_empty_lines_before_ungrouped_buffers)
                         call append(line('$'), "")
                     endfor
                 endif
@@ -543,10 +604,10 @@ function! s:RenderTabGroups()
         call append(line('$'), "")
         let shown_groups = len(s:tabgroups)
         if has_key(s:tabgroups, '#') && s:highlighted_group != '#'
-                    \ && !s:config.always_show_unbound_buffers
+                    \ && !s:config.buffer_list_always_show_ungrouped_buffers
             let shown_groups = shown_groups - 1
         endif
-        if shown_groups > 1 || s:config.always_show_group_titles
+        if shown_groups > 1 || s:config.buffer_list_always_show_group_names
             let gp = group == s:highlighted_group ? 'G ' : 'g '
             call append(line('$'), gp.group.repeat(' ', 100))
         endif
@@ -570,12 +631,17 @@ function! s:RenderTabGroups()
             endif
 
             " Render the item
-            call append(line('$'), printf('%s %s', prefix, s:GetBuferName(bufnr)))
+            call append(line('$'), printf('%s%s %s', alignment, prefix, s:GetBuferName(bufnr)))
         endfor
     endfor
 
     " Remove extra white line at top of buffer.
     normal! gg"_dd
+
+    if s:config.buffer_list_alignment_and_margin < 0
+        let &tw=winwidth('.') + s:config.buffer_list_alignment_and_margin
+        1,$right
+    endif
 endfunction
 
 function! s:UpdateTabGroups()
@@ -593,14 +659,14 @@ function! s:UpdateTabGroups()
     exe right_window.'wincmd w'
     normal! gg"_dG
     call s:CleanupGroups()
-    if s:config.show_buffer_grous
+    if s:config.buffer_list_shown
         call s:RenderTabGroups()
     endif
     exe from_window.'wincmd w'
     echo ''
 endfunction
 
-function s:RemoveBufferFromGroup(bufnr, group)
+function! s:RemoveBufferFromGroup(bufnr, group)
     if has_key(s:tabgroups, a:group) && has_key(s:tabgroups[a:group], a:bufnr)
         let item = s:tabgroups[a:group][a:bufnr]
         let item.deleted = 1

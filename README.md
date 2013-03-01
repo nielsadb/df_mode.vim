@@ -23,17 +23,17 @@ When you want to use sessions, be sure to set the saved session directory (see e
     """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
     " Distraction Free Config
     
-    let g:df_saved_session_directory = '~/Dropbox/Config/vim-sessions/'
+    let g:df_session_save_directory = '~/Dropbox/Config/vim-sessions/'
     
     function! ToggleShowBufferGroups()
         let df_config = DF_GetConfig()
-        let df_config.show_buffer_grous = !df_config.show_buffer_grous
+        let df_config.buffer_list_shown = !df_config.buffer_list_shown
         call DF_Redraw()
     endfunction
     
-    function! ToggleAlwaysShowUnbound()
+    function! ToggleAlwaysShowUngrouped()
         let df_config = DF_GetConfig()
-        let df_config.always_show_unbound_buffers = !df_config.always_show_unbound_buffers
+        let df_config.buffer_list_always_show_ungrouped_buffers = !df_config.buffer_list_always_show_ungrouped_buffers
         call DF_Redraw()
     endfunction
     
@@ -46,7 +46,7 @@ When you want to use sessions, be sure to set the saved session directory (see e
     
     nnoremap ,d        :call DF_Enable()<CR>
     nnoremap ,u        :call ToggleShowBufferGroups()<CR>
-    nnoremap ,U        :call ToggleAlwaysShowUnbound()<CR>
+    nnoremap ,U        :call ToggleAlwaysShowUngrouped()<CR>
     nnoremap <Space>   :call DF_GoToNextBuffer(1, 0)<CR>:echo<CR>
     nnoremap <S-Space> :call DF_GoToNextBuffer(0, 0)<CR>:echo<CR>
     nnoremap <M-Space> :call DF_GoToNextBuffer(1, 1)<CR>:echo<CR>
@@ -62,6 +62,10 @@ When you want to use sessions, be sure to set the saved session directory (see e
     """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 Note: I find 5 groups to be more than enough. You can change the range if you feel you need more/less.
+
+## Settings Description
+
+For now, refer to the source file. The settings are documented first thing in the file.
 
 ## TODO
 
