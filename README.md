@@ -9,6 +9,7 @@ This plug-in is currently poorly documented and not very well tested.
 It is written entirely in VimScript. No extenal tools/libraries needed.
 
 ![Screenshot](https://raw.github.com/nielsadb/df_mode.vim/master/screenshot.png)
+![Another Screenshot](https://raw.github.com/nielsadb/df_mode.vim/master/screenshot2.png)
 
 ## Some design rationale
 
