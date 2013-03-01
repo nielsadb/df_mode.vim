@@ -8,6 +8,8 @@ This plug-in is currently poorly documented and not very well tested.
 
 It is written entirely in VimScript. No extenal tools/libraries needed.
 
+![Screenshot](https://raw.github.com/nielsadb/df_mode.vim/master/screenshot.png)
+
 ## Some design rationale
 
 The distraction free mode is based on iA Writer, an excellent text editor for the Mac. However, it's not quite up to the task of being a programming editor.
