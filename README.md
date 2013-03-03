@@ -6,7 +6,7 @@ I wanted something that combines a clean editing view with decent buffer managem
 
 This plug-in is currently poorly documented and not very well tested.
 
-It is written entirely in VimScript. No extenal tools/libraries needed.
+It is written entirely in VimScript. No external tools/libraries needed.
 
 ![Screenshot](https://raw.github.com/nielsadb/df_mode.vim/master/screenshot.png)
 ![Another Screenshot](https://raw.github.com/nielsadb/df_mode.vim/master/screenshot2.png)
