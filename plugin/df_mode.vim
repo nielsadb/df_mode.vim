@@ -639,7 +639,7 @@ function! s:RenderTabGroups()
     normal! gg"_dd
 
     if s:config.buffer_list_alignment_and_margin < 0
-        let &tw=winwidth('.') + s:config.buffer_list_alignment_and_margin
+        exe 'setlocal tw='.(winwidth('.') + s:config.buffer_list_alignment_and_margin)
         1,$right
     endif
 endfunction
