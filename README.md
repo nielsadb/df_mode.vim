@@ -47,19 +47,30 @@ When you want to use sessions, be sure to set the saved session directory (see e
         endfor
     endfunction
     
+    function! GoToNextBuffer(forward, skip_groups)
+        if v:count == 0
+            call DF_GoToNextBuffer(a:forward, a:skip_groups)
+        else
+            call DF_GoToGroup(v:count, 0)
+        endif
+    endfunction
+    
     nnoremap ,d        :call DF_Enable()<CR>
     nnoremap ,u        :call ToggleShowBufferGroups()<CR>
     nnoremap ,U        :call ToggleAlwaysShowUngrouped()<CR>
-    nnoremap <Space>   :call DF_GoToNextBuffer(1, 0)<CR>:echo<CR>
-    nnoremap <S-Space> :call DF_GoToNextBuffer(0, 0)<CR>:echo<CR>
-    nnoremap <M-Space> :call DF_GoToNextBuffer(1, 1)<CR>:echo<CR>
+    nnoremap <Space>   :<C-u>call GoToNextBuffer(1, 0)<CR>:echo<CR>
+    nnoremap <S-Space> :<C-u>call GoToNextBuffer(0, 0)<CR>:echo<CR>
+    " I found out that I don't use this, I jump to an explicit group.
+    " nnoremap <M-Space> :<C-u>call GoToNextBuffer(1, 1)<CR>:echo<CR>
     nnoremap ,R        :call DF_ReadBufferGroups()<CR>
     nnoremap ,W        :call DF_WriteBufferGroups()<CR>
     nnoremap ,DD       :call RemoveBuffersFromGroup()<CR>
     
     for i in range(1, 5)
         exe printf("nnoremap <D-%d> :call DF_ToggleBufferInGroup(bufnr('%%'), %d)<CR>", i, i)
-        exe printf("nnoremap <M-%d> :call DF_GoToGroup(%d, 0)<CR>", i, i)
+        " I found that M- and D- mappings are too confusing for me.
+        " So I now use v:count to switch. Some people may still prefer this...
+        " exe printf("nnoremap <M-%d> :call DF_GoToGroup(%d, 0)<CR>", i, i)
     endfor
     
     """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""

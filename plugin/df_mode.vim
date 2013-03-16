@@ -68,9 +68,13 @@
 " numbers!
 
 if exists("g:df_mode_version") || &cp
-    finish
+    " finish
 endif
 let g:df_mode_version = '0.9'
+
+function! DF_Dump()
+    echo s:tabgroups
+endfunction
 
 let s:config = {
             \ 'main_window_target_width':                          100,
@@ -158,21 +162,21 @@ endfunction
 
 function! DF_AddBufferToGroup(bufnr, group)
     if !has_key(s:tabgroups, a:group)
-        let s:tabgroups[a:group] = {}
+        let s:tabgroups[a:group] = {'last_buffer': a:bufnr, 'bufs': {}}
         if empty(s:highlighted_group)
             let s:highlighted_group = a:group.''
         endif
     endif
     let rv = 0
-    if !has_key(s:tabgroups[a:group], a:bufnr)
-        let s:tabgroups[a:group][a:bufnr] =
+    if !has_key(s:tabgroups[a:group].bufs, a:bufnr)
+        let s:tabgroups[a:group].bufs[a:bufnr] =
                     \ {'added':      1,
                     \  'added_time': reltime(),
                     \  'bufnr':      a:bufnr,
                     \  'deleted':    0}
         let rv = 1
-    elseif s:tabgroups[a:group][a:bufnr].deleted
-        let s:tabgroups[a:group][a:bufnr].deleted = 0
+    elseif s:tabgroups[a:group].bufs[a:bufnr].deleted
+        let s:tabgroups[a:group].bufs[a:bufnr].deleted = 0
         let rv = 1
     endif
     if rv
@@ -205,7 +209,9 @@ function! DF_WriteBufferGroups()
         if name ==# '#' | continue | endif
         let prefix = name ==# s:highlighted_group ? 'G ' : 'g '
         call add(ls, prefix.name)
-        for [bufnr, item] in items(group)
+        " TODO: write the last visited buffer to the file?
+        " Not really useful since you don't change the buffer list often.
+        for [bufnr, item] in items(group.bufs)
             let prefix = bufnr == bufnr('%') ? 'c ' : '_ '
             call add(ls, prefix.fnamemodify(bufname(item.bufnr), ':p'))
         endfor
@@ -315,9 +321,19 @@ function! DF_GoToGroup(group, force_to_first)
     if !has_key(s:tabgroups, group) | return | endif
 
     let s:highlighted_group = group
-    if a:force_to_first || !has_key(s:tabgroups[group], bufnr('%').'')
-        exe 'buffer '.DF_GetSortedBuffers(group)[0]
+
+    let last_buffer = s:tabgroups[group].last_buffer
+    if a:force_to_first
+        let goto_buf = DF_GetSortedBuffers(group)[0]
+    elseif has_key(s:tabgroups[group].bufs, bufnr('%').'')
+        let goto_buf = bufnr('%').''
+    elseif has_key(s:tabgroups[group].bufs, last_buffer) && buflisted(last_buffer)
+        let goto_buf = last_buffer
+    else
+        let goto_buf = DF_GetSortedBuffers(group)[0]
     endif
+    exe 'buffer '.goto_buf
+
     call s:UpdateTabGroups()
 endfunction
 
@@ -327,7 +343,7 @@ endfunction
 
 function! DF_GetSortedBuffers(group)
     if has_key(s:tabgroups, a:group.'')
-        return sort(keys(s:tabgroups[a:group.'']), '<SID>SortBuffers')
+        return sort(keys(s:tabgroups[a:group.''].bufs), '<SID>SortBuffers')
     else
         return []
     endif
@@ -386,6 +402,7 @@ function! <SID>UpdateHighlighInBufferGroups()
             let s:highlighted_group = groups[0]
         endif
     endif
+    let s:tabgroups[s:highlighted_group].last_buffer = bufnr('%')
     call s:UpdateTabGroups()
 endfunction
 
@@ -425,16 +442,16 @@ endfunction
 
 
 function! s:UnboundBuffers()
-    let unbound = {}
+    let unbound = {'bufs': {}}
     let bound = []
     for group in values(s:tabgroups)
-        let bound = bound + keys(group)
+        let bound = bound + keys(group.bufs)
     endfor
     for i in range(1, bufnr('$'))
         if buflisted(i) && index(bound, i.'') == -1
-            let unbound[i] = {'added':    0,
-                        \     'bufnr':   i,
-                        \     'deleted': 0}
+            let unbound.bufs[i] = {'added':    0,
+                             \     'bufnr':   i,
+                             \     'deleted': 0}
         endif
     endfor
     return unbound
@@ -443,7 +460,7 @@ endfunction
 function! s:GroupsForBuffer(bufnr)
     let rv = []
     for group in sort(keys(s:tabgroups))
-        for bufnr in keys(s:tabgroups[group])
+        for bufnr in keys(s:tabgroups[group].bufs)
             if a:bufnr == bufnr
                 call add(rv, group)
             endif
@@ -561,8 +578,8 @@ endfunction
 
 function! s:CleanupGroups()
     for group in keys(s:tabgroups)
-        for bufnr in keys(s:tabgroups[group])
-            let item = s:tabgroups[group][bufnr]
+        for bufnr in keys(s:tabgroups[group].bufs)
+            let item = s:tabgroups[group].bufs[bufnr]
             " Remove old removed items. However, don't delete the buffer that
             " is currently selected (now).
             if item.deleted && s:SecondsSince(item.deleted_time) > (&ut / 1000)
@@ -570,7 +587,7 @@ function! s:CleanupGroups()
                 unlet s:tabgroups[group][item.bufnr]
             endif
         endfor
-        if empty(s:tabgroups[group])
+        if empty(s:tabgroups[group].bufs)
             unlet s:tabgroups[group]
         endif
     endfor
@@ -614,7 +631,7 @@ function! s:RenderTabGroups()
 
         " Buffers are sorted by filename alphabetically.
         for bufnr in DF_GetSortedBuffers(group)
-            let item = s:tabgroups[group][bufnr]
+            let item = s:tabgroups[group].bufs[bufnr]
             let prefix = ''
 
             " Determine the prefix of this buffer
@@ -667,8 +684,8 @@ function! s:UpdateTabGroups()
 endfunction
 
 function! s:RemoveBufferFromGroup(bufnr, group)
-    if has_key(s:tabgroups, a:group) && has_key(s:tabgroups[a:group], a:bufnr)
-        let item = s:tabgroups[a:group][a:bufnr]
+    if has_key(s:tabgroups, a:group) && has_key(s:tabgroups[a:group].bufs, a:bufnr)
+        let item = s:tabgroups[a:group].bufs[a:bufnr]
         let item.deleted = 1
         let item.deleted_time = reltime()
         return 2
