@@ -584,7 +584,7 @@ function! s:CleanupGroups()
             " is currently selected (now).
             if item.deleted && s:SecondsSince(item.deleted_time) > (&ut / 1000)
                         \ && !(group == s:highlighted_group && bufnr == bufnr('%').'')
-                unlet s:tabgroups[group][item.bufnr]
+                unlet s:tabgroups[group].bufs[item.bufnr]
             endif
         endfor
         if empty(s:tabgroups[group].bufs)
