@@ -375,12 +375,11 @@ endif
 augroup END
 
 function! <SID>SetBufferGroupHighlighting()
-    hi TabGroupGroupPrefix     guibg=#eeeeee guifg=#eeeeee
-    hi TabGroupGroupPrefixNC   guibg=#eeeeee guifg=#eeeeee
-    hi TabGroupTitle           guibg=#eeeeee guifg=#ff0000 gui=bold
-    hi TabGroupTitleNC         guibg=#eeeeee guifg=#000000
+    hi TabGroupGroupPrefix     guibg=#ffffff guifg=#ffffff gui=underline
+    hi TabGroupTitle           guibg=#ffffff guifg=#ff0000 gui=underline
+    hi TabGroupTitleNC         guibg=#ffffff guifg=#aaaaaa gui=underline
     hi TabGroupBufferNew       guifg=#33aa33
-    hi TabGroupBufferCurrent   guifg=#000000 gui=underline
+    hi TabGroupBufferCurrent   guifg=#000000 gui=bold
     hi TabGroupBufferCurrentNC guifg=#000000
     hi TabGroupBufferDeleted   guifg=#aa3333
     hi TabGroupBufferNC        guifg=#aaaaaa
@@ -557,11 +556,10 @@ endfunction
 
 function! s:SetBufferGroupSyntax()
     syn clear
-    syn match TabGroupGroupPrefix     "^\s*G "
-    syn match TabGroupGroupPrefixNC   "^\s*g "
+    syn match TabGroupGroupPrefix     "[gG]"
     syn match TabGroupPrefix          "^\s*[Ccad_] "
-    syn match TabGroupTitle           "^\s*G \S\+\W*$"hs=s+2 contains=TabGroupGroupPrefix
-    syn match TabGroupTitleNC         "^\s*g \S\+\W*$"hs=s+2 contains=TabGroupGroupPrefixNC
+    syn match TabGroupTitle           "^\s*G\s*\S\+\W*$"hs=s+2 contains=TabGroupGroupPrefix
+    syn match TabGroupTitleNC         "^\s*g\s*\S\+\W*$"hs=s+2 contains=TabGroupGroupPrefix
     syn match TabGroupBufferNew       "^\s*a .\+$"hs=s+2 contains=TabGroupPrefix
     syn match TabGroupBufferCurrent   "^\s*C .\+$"hs=s+2 contains=TabGroupPrefix
     syn match TabGroupBufferCurrentNC "^\s*c .\+$"hs=s+2 contains=TabGroupPrefix
@@ -625,8 +623,11 @@ function! s:RenderTabGroups()
             let shown_groups = shown_groups - 1
         endif
         if shown_groups > 1 || s:config.buffer_list_always_show_group_names
-            let gp = group == s:highlighted_group ? 'G ' : 'g '
-            call append(line('$'), gp.group.repeat(' ', 100))
+            let gp = group == s:highlighted_group ? 'G' : 'g'
+            call append(line('$'), group.repeat(' ', 100))
+            normal! G
+            right
+            exe 'normal! 0r'.gp
         endif
 
         " Buffers are sorted by filename alphabetically.
