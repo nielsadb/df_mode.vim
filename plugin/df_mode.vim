@@ -68,7 +68,7 @@
 " numbers!
 
 if exists("g:df_mode_version") || &cp
-    " finish
+    finish
 endif
 let g:df_mode_version = '0.9'
 
@@ -481,8 +481,27 @@ endfunction
 function! s:GetBuferName(nr)
     let res = fnamemodify(bufname(str2nr(a:nr)), ':p:t')
     if empty(res)
-        let res = printf('new:%s   %s', a:nr, s:GetFirstLineOfBuffer(a:nr))
-
+        " This is of course insane. Ugly dirty hack to convey the information
+        " that a new filtering window is being opened from one plug-in to the
+        " other. The problem: this code runs in an autocmd right after the
+        " filtering plug-in creates a window. That plug-in hasn't set the
+        " b:filtering_target variable yet, or even know the buffer number of
+        " the thing it just created. So it stores the object in a global. The
+        " newly created buffer with have a number equal to bufnr('$'), i.e.
+        " the highest buffer number.
+        if str2nr(a:nr) == bufnr('$') && exists('g:filtering_target_being_created')
+            let res = g:filtering_target_being_created.description()
+        else
+            " Check for filtering windows that have already been fully
+            " created.
+            let filtering_target = getbufvar(str2nr(a:nr), 'filtering_target')
+            if type(filtering_target) == type('')
+                " None found: print buffer nr and first (non-empty) line.
+                let res = printf('new:%s   %s', a:nr, s:GetFirstLineOfBuffer(a:nr))
+            else
+                let res = filtering_target.description()
+            endif
+        endif
     endif
     return res
 endfunction

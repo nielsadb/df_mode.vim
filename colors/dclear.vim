@@ -50,7 +50,8 @@ hi TabLine      guifg=#f0f0f0   guibg=#646464   gui=none
 hi TabLineSel   guifg=#ffffff   guibg=#323232   gui=none
 hi TabLineFill  guifg=#646464   guibg=#646464   gui=none
 hi CursorColumn                 guibg=#e1f5ff
-hi CursorLine                   guibg=#e1f5ff   gui=none
+" hi CursorLine                   guibg=#e1f5ff   gui=none
+hi CursorLine                   guibg=#E3F2FF   gui=none
 hi ColorColumn                  guibg=#b8ddf0
 hi Cursor       guifg=#ffffff   guibg=#111111
 hi lCursor      guifg=#ffffff   guibg=#004364
