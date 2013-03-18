@@ -1,5 +1,9 @@
-
 Enhancements:
 - Mode-dependent background color?
+- Document all public functions.
+- Make an optional feature to show (part of) the directory path of named buffers.
+- Make an optional feature to show uppercase marks in each buffer.
+- Maybe show the Current Working Directory somewhere.
+- Grouping of files with same name except for extension (view only, not conceptually).
 
 Bugs:
