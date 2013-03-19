@@ -37,6 +37,11 @@
 " Set to true if the buffer list is shown on the right of the main window
 " (given that there is enough space). Call DF_Redraw after a change.
 "
+" buffer_list_group_files_with_same_root
+" Set to true if you want buffers with the same root (the non-extension part
+" of the file name) to be rendered on the same line. The selected buffer is
+" indicated by a highlighted extension.
+"
 " buffer_list_always_show_ungrouped_buffers
 " Set to true if buffers that are not explicitly added to a group (called
 " "ungrouped buffers", or "#") should always be shown. When set to false this
@@ -70,7 +75,7 @@
 if exists("g:df_mode_version") || &cp
     finish
 endif
-let g:df_mode_version = '0.9'
+let g:df_mode_version = '0.95'
 
 function! DF_Dump()
     echo s:tabgroups
@@ -82,6 +87,7 @@ let s:config = {
             \ 'session_save_directory':
             \        '...///...Set me up!...\\\...',
             \ 'buffer_list_shown':                                 1,
+            \ 'buffer_list_group_files_with_same_root':            1,
             \ 'buffer_list_always_show_ungrouped_buffers':         0,
             \ 'buffer_list_empty_lines_before_ungrouped_buffers':  2,
             \ 'buffer_list_always_show_group_names':               0,
@@ -322,7 +328,7 @@ function! DF_GoToGroup(group, force_to_first)
 
     let s:highlighted_group = group
 
-    let last_buffer = s:tabgroups[group].last_buffer
+    let last_buffer = has_key(s:tabgroups[group], 'last_buffer') ? s:tabgroups[group].last_buffer : -1
     if a:force_to_first
         let goto_buf = DF_GetSortedBuffers(group)[0]
     elseif has_key(s:tabgroups[group].bufs, bufnr('%').'')
@@ -375,17 +381,30 @@ endif
 augroup END
 
 function! <SID>SetBufferGroupHighlighting()
-    hi TabGroupGroupPrefix     guibg=#ffffff guifg=#ffffff gui=underline
-    hi TabGroupTitle           guibg=#ffffff guifg=#ff0000 gui=underline
-    hi TabGroupTitleNC         guibg=#ffffff guifg=#aaaaaa gui=underline
-    hi TabGroupBufferNew       guifg=#33aa33
-    hi TabGroupBufferCurrent   guifg=#000000 gui=bold
-    hi TabGroupBufferCurrentNC guifg=#000000
-    hi TabGroupBufferDeleted   guifg=#aa3333
-    hi TabGroupBufferNC        guifg=#aaaaaa
-    hi TabGroupBufferNewNC     guifg=#aaaaaa gui=italic
-    hi TabGroupPrefix          guifg=bg guibg=bg
-    hi NonText                 guifg=bg
+    hi TabGroupGroupPrefix         guibg=#ffffff guifg=#ffffff gui=underline
+    hi TabGroupTitle               guibg=#ffffff guifg=#ff0000 gui=underline
+    hi TabGroupTitleNC             guibg=#ffffff guifg=#aaaaaa gui=underline
+    hi TabGroupBufferNew           guifg=#33aa33
+    hi TabGroupBufferCurrent       guifg=#000000 gui=bold
+
+    hi TabGroupBufferCurrentExt    guifg=#aaaaaa
+    hi TabGroupRoot                guifg=#000000 gui=bold
+    hi TabGroupSelectedExtNext     guifg=#000000 gui=bold
+    hi TabGroupSelectedExtPrev     guifg=#000000 gui=bold
+
+    hi TabGroupBufferCurrentExtNC  guifg=#aaaaaa
+    hi TabGroupRootNC              guifg=#000000
+    hi TabGroupSelectedExtNextNC   guifg=#000000
+    hi TabGroupSelectedExtPrevNC   guifg=#000000
+
+    hi TabGroupBufferCurrentNC     guifg=#000000
+    hi TabGroupBufferDeleted       guifg=#aa3333
+    hi TabGroupBufferNC            guifg=#aaaaaa
+    hi TabGroupBufferNewNC         guifg=#aaaaaa gui=italic
+
+    hi TabGroupPrefix              guifg=bg guibg=bg
+    hi TabGroupExtensionSeparator  guifg=bg guibg=bg
+    hi NonText                     guifg=bg
 endfunction
 let s:config.set_buffer_groups_highlighting = function('<SID>SetBufferGroupHighlighting')
 
@@ -575,16 +594,35 @@ endfunction
 
 function! s:SetBufferGroupSyntax()
     syn clear
-    syn match TabGroupGroupPrefix     "[gG]"
-    syn match TabGroupPrefix          "^\s*[Ccad_] "
+
+    " Hidden elements
+    syn match TabGroupGroupPrefix         "[gG]" contained
+    syn match TabGroupPrefix              "^\s*[EeCcad_] " contained
+    syn match TabGroupExtensionSeparator  "[\\/]" contained
+
     syn match TabGroupTitle           "^\s*G\s*\S\+\W*$"hs=s+2 contains=TabGroupGroupPrefix
     syn match TabGroupTitleNC         "^\s*g\s*\S\+\W*$"hs=s+2 contains=TabGroupGroupPrefix
+
     syn match TabGroupBufferNew       "^\s*a .\+$"hs=s+2 contains=TabGroupPrefix
+
     syn match TabGroupBufferCurrent   "^\s*C .\+$"hs=s+2 contains=TabGroupPrefix
     syn match TabGroupBufferCurrentNC "^\s*c .\+$"hs=s+2 contains=TabGroupPrefix
     syn match TabGroupBufferDeleted   "^\s*d .\+$"hs=s+2 contains=TabGroupPrefix
     syn match TabGroupBufferNC        "^\s*_ .\+$"hs=s+2 contains=TabGroupPrefix
     syn match TabGroupBufferNewNC     "^\s*_ new:\d\+   .\+$"hs=s+2 contains=TabGroupPrefix
+
+    " Extension groups
+    syn match TabGroupBufferCurrentExt "^\s*E .\+$" contains=TabGroupSelectedExtNext,TabGroupSelectedExtPrev,TabGroupRoot
+    syn match TabGroupSelectedExtNext  "/[^ \]]\+"hs=s+1 contained contains=TabGroupExtensionSeparator
+    syn match TabGroupSelectedExtPrev  "[\[ ][^ \\]\+\\"hs=s+1 contained contains=TabGroupExtensionSeparator
+    syn match TabGroupRoot             "\s*E [^\[]*" contained contains=TabGroupPrefix
+
+    " Extension groups (Not Current)
+    syn match TabGroupBufferCurrentExtNC "^\s*e .\+$" contains=TabGroupSelectedExtNextNC,TabGroupSelectedExtPrevNC,TabGroupRootNC
+    syn match TabGroupSelectedExtNextNC  "/[^ \]]\+"hs=s+1 contained contains=TabGroupExtensionSeparator
+    syn match TabGroupSelectedExtPrevNC  "[\[ ][^ \\]\+\\"hs=s+1 contained contains=TabGroupExtensionSeparator
+    syn match TabGroupRootNC             "\s*e [^\[]*" contained contains=TabGroupPrefix
+
 endfunction
 
 " Gets the seconds part of a reltime object.
@@ -608,6 +646,30 @@ function! s:CleanupGroups()
             unlet s:tabgroups[group]
         endif
     endfor
+endfunction
+
+function! <SID>SortExtensions(a, b)
+    if a:a == a:b | return 0 | endif
+    let aa = a:a.extension
+    let bb = a:b.extension
+    return aa ==# bb ? (a:a > a:b ? 1 : -1) : aa > bb ? 1 : -1
+endfunction
+
+function! s:RenderSingleLine(bufnr, group, alignment)
+    let item = s:tabgroups[a:group].bufs[a:bufnr]
+    if item.deleted
+        let prefix = 'd'
+        let s:transient_items_remain = 1
+    elseif item.bufnr == s:highlighted_buffer
+        let prefix = s:highlighted_group == a:group ? 'C' : 'c'
+    elseif item.added && s:SecondsSince(item.added_time) < (&ut / 1000)
+        let prefix = 'a'
+        let s:transient_items_remain = 1
+    else
+        let prefix = '_'
+    endif
+    " Render the item
+    call append(line('$'), printf('%s%s %s', a:alignment, prefix, s:GetBuferName(item.bufnr)))
 endfunction
 
 function! s:RenderTabGroups()
@@ -649,27 +711,69 @@ function! s:RenderTabGroups()
             exe 'normal! 0r'.gp
         endif
 
-        " Buffers are sorted by filename alphabetically.
-        for bufnr in DF_GetSortedBuffers(group)
-            let item = s:tabgroups[group].bufs[bufnr]
-            let prefix = ''
-
-            " Determine the prefix of this buffer
-            if item.deleted
-                let prefix = 'd'
-                let s:transient_items_remain = 1
-            elseif item.bufnr == s:highlighted_buffer
-                let prefix = s:highlighted_group == group ? 'C' : 'c'
-            elseif item.added && s:SecondsSince(item.added_time) < (&ut / 1000)
-                let prefix = 'a'
-                let s:transient_items_remain = 1
+        " Group all buffers in a group by root. This allows displaying all
+        " buffers with the same root name in a single line later.
+        let byroot = {}
+        let unnamed = []
+        for bufnr in keys(s:tabgroups[group].bufs)
+            let root = fnamemodify(bufname(str2nr(bufnr)), ':p:t:r')
+            if !empty(root)
+                let extension = fnamemodify(bufname(str2nr(bufnr)), ':p:t:e')
+                if empty(extension) | let extension = '___' | endif
+                if !has_key(byroot, root) | let byroot[root] = [] | endif
+                call add(byroot[root], {'extension': extension, 'bufnr': bufnr})
             else
-                let prefix = '_'
+                call add(unnamed, bufnr)
             endif
-
-            " Render the item
-            call append(line('$'), printf('%s%s %s', alignment, prefix, s:GetBuferName(bufnr)))
         endfor
+
+        for root in sort(keys(byroot), '<SID>SortBuffers')
+            let sorted_extensions = sort(byroot[root], '<SID>SortExtensions')
+            if len(sorted_extensions) == 1 || !s:config.buffer_list_group_files_with_same_root
+                for ext in sorted_extensions
+                    call s:RenderSingleLine(ext.bufnr, group, alignment)
+                endfor
+            else
+                " Extension group case
+                if index(map(copy(byroot[root]), 'v:val.bufnr'), s:highlighted_buffer.'') != -1
+                    let prefix = group == s:highlighted_group ? 'E' : 'e'
+                else
+                    let prefix = '_'
+                endif
+
+                let parts = []
+                let i = 0
+                while i < len(sorted_extensions)
+                    let extension = sorted_extensions[i].extension
+                    if sorted_extensions[i].bufnr == s:highlighted_buffer
+                        " In case this is the last extension, prefix it.
+                        " Otherwise postfix.
+                        if i == len(sorted_extensions)-1
+                            " Remove previous separator.
+                            call remove(parts, len(parts)-1)
+                            call add(parts, '/')
+                            call add(parts, extension)
+                        else
+                            call add(parts, extension)
+                            call add(parts, '\')
+                        endif
+                    else
+                        call add(parts, extension)
+                        if i != len(sorted_extensions)-1
+                            call add(parts, ' ')
+                        endif
+                    endif
+                    let i += 1
+                endwhile
+
+                let exts = join(parts, '')
+                call append(line('$'), printf('%s%s %s [%s]', alignment, prefix, root, exts))
+            endif
+        endfor
+        for bufnr in unnamed
+            call s:RenderSingleLine(bufnr, group, alignment)
+        endfor
+
     endfor
 
     " Remove extra white line at top of buffer.

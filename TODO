@@ -4,6 +4,15 @@ Enhancements:
 - Make an optional feature to show (part of) the directory path of named buffers.
 - Make an optional feature to show uppercase marks in each buffer.
 - Maybe show the Current Working Directory somewhere.
-- Grouping of files with same name except for extension (view only, not conceptually).
+
+Next up:
 
 Bugs:
+- Remove crazy hack with global var to detect filtering windows. Should use eventignore
+  and raise the appropriate autocmds (BufEnter mainly) when the buffer is set up fully.
+  set eventignore=all, new, yadda yadda, store bufnr, wincmd c, reset ei, wincmd s,
+  load buffer
+- Showing three windows, the center window being an unlisted buffer. Now close
+  that window -> lost. Possible countermeasure: whenever entering a whitespace
+  buffer, detect panic (#windows < 3) and jump to some known buffer and reset the
+  view.
