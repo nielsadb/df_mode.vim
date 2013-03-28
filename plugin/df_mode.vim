@@ -33,6 +33,12 @@
 " you want to use this function. By default the value is set to
 " g:df_session_save_directory, which you can set in your vimrc.
 "
+" session_save_extension
+" Extension to use for session files. This is useful to set up open-with
+" relations in your OS. Note that the extension is not mentioned in the
+" standard load/save procedures.
+" Note that you must include the dot!
+"
 " buffer_list_shown
 " Set to true if the buffer list is shown on the right of the main window
 " (given that there is enough space). Call DF_Redraw after a change.
@@ -73,7 +79,7 @@
 " numbers!
 
 if exists("g:df_mode_version") || &cp
-    " finish
+    finish
 endif
 let g:df_mode_version = '0.95'
 
@@ -221,6 +227,10 @@ function! DF_WriteBufferGroups()
     let session_name = input('Save session as: ', s:last_session)
     if empty(session_name) | return | endif
     let s:last_session = session_name
+    call DF_WriteBufferGroupsToFile(fnamemodify(s:config.session_save_directory . session_name . s:config.session_save_extension, ':p'))
+endfunction
+
+function! DF_WriteBufferGroupsToFile(file_name)
     let ls = ['p '.getcwd()]
     for [name, group] in items(s:tabgroups)
         if name ==# '#' | continue | endif
@@ -233,7 +243,12 @@ function! DF_WriteBufferGroups()
             call add(ls, prefix.fnamemodify(bufname(item.bufnr), ':p'))
         endfor
     endfor
-    call writefile(ls, fnamemodify(s:config.session_save_directory . session_name . s:config.session_save_extension, ':p'))
+    try
+        call writefile(ls, a:file_name)
+    catch
+        return 0
+    endtry
+    return 1
 endfunction
 
 function! DF_ReadBufferGroups()
@@ -251,7 +266,47 @@ function! DF_ReadBufferGroups()
     let choice = inputlist(options)
     if choice < 1 || choice > len(options) | return | endif
 
-    call s:ParseSessionFile(sessions[choice-1])
+    call DF_ReadBufferGroupsFromFile(sessions[choice-1])
+endfunction
+
+function! DF_ReadBufferGroupsFromFile(file_name)
+    let s:last_session = fnamemodify(a:file_name, ':p:t:r')
+    try
+        let ls = readfile(a:file_name)
+    catch 
+        return 0
+    endtry
+    let s:tabgroups = {}
+    let selected_group = ''
+    let selected_buffer = -1
+
+    for line in ls
+        let ch = line[0]
+        if ch ==# 'c' || ch ==# '_'
+            exe 'edit '.line[2:]
+            call DF_AddBufferToGroup(bufnr('%'), current_group)
+            if ch ==# 'c' | let selected_buffer = bufnr('%') | endif
+        elseif ch ==? 'g'
+            let current_group = line[2:]
+            if ch ==# 'G'
+                let selected_group = current_group
+            endif
+        elseif ch ==# 'p'
+            exe 'cd '.line[2:]
+        else
+            throw 'illegal format'
+        endif
+    endfor
+
+    if !empty(selected_group)
+        let s:highlighted_group = selected_group
+    endif
+    if selected_buffer != -1
+        exe 'buffer '.selected_buffer
+    endif
+    call DF_Enable()
+    call s:UpdateTabGroups()
+    return 1
 endfunction
 
 function! DF_GoToNextBuffer(forward, skip_groups)
@@ -576,16 +631,16 @@ function! DF_StartSessionFromArgument()
     let to_delete = bufnr('%')
     let file_name = fnamemodify(argv(0), ':p')
 
-    let res = !empty(file_name) && s:ParseSessionFile(file_name)
+    let res = !empty(file_name) && DF_ReadBufferGroupsFromFile(file_name)
 
     if !res
         let file_name = fnamemodify(s:config.session_save_directory . argv(0), ':p')
-        let res = !empty(file_name) && s:ParseSessionFile(file_name)
+        let res = !empty(file_name) && DF_ReadBufferGroupsFromFile(file_name)
     endif
 
     if !res
         let file_name = fnamemodify(s:config.session_save_directory . argv(0) . s:config.session_save_extension, ':p')
-        let res = !empty(file_name) && s:ParseSessionFile(file_name)
+        let res = !empty(file_name) && DF_ReadBufferGroupsFromFile(file_name)
     endif
 
     if !res
@@ -818,46 +873,6 @@ function! s:RemoveBufferFromGroup(bufnr, group)
         return 2
     endif
     return 0
-endfunction
-
-function! s:ParseSessionFile(file_name)
-    let s:last_session = fnamemodify(a:file_name, ':p:t:r')
-    try
-        let ls = readfile(a:file_name)
-    catch 
-        return 0
-    endtry
-    let s:tabgroups = {}
-    let selected_group = ''
-    let selected_buffer = -1
-
-    for line in ls
-        let ch = line[0]
-        if ch ==# 'c' || ch ==# '_'
-            exe 'edit '.line[2:]
-            call DF_AddBufferToGroup(bufnr('%'), current_group)
-            if ch ==# 'c' | let selected_buffer = bufnr('%') | endif
-        elseif ch ==? 'g'
-            let current_group = line[2:]
-            if ch ==# 'G'
-                let selected_group = current_group
-            endif
-        elseif ch ==# 'p'
-            exe 'cd '.line[2:]
-        else
-            throw 'illegal format'
-        endif
-    endfor
-
-    if !empty(selected_group)
-        let s:highlighted_group = selected_group
-    endif
-    if selected_buffer != -1
-        exe 'buffer '.selected_buffer
-    endif
-    call DF_Enable()
-    call s:UpdateTabGroups()
-    return 1
 endfunction
 
 
