@@ -73,7 +73,7 @@
 " numbers!
 
 if exists("g:df_mode_version") || &cp
-    finish
+    " finish
 endif
 let g:df_mode_version = '0.95'
 
@@ -86,6 +86,7 @@ let s:config = {
             \ 'single_window_if_less_than_N_columns_left':         10,
             \ 'session_save_directory':
             \        '...///...Set me up!...\\\...',
+            \ 'session_save_extension':                            '.dfsession',
             \ 'buffer_list_shown':                                 1,
             \ 'buffer_list_group_files_with_same_root':            1,
             \ 'buffer_list_always_show_ungrouped_buffers':         0,
@@ -100,6 +101,16 @@ let s:config = {
 if exists('g:df_session_save_directory')
     let s:config.session_save_directory = g:df_session_save_directory
 endif
+
+" This command is intended to be used via the command line. Invoke Vim like
+" this on the session you want to open:
+"   vim +DFStartSession awesome_session.dfsession
+" You must either pass an absolute path to the session file or use a file from
+" your default session directory.
+" For MacVim users: by default MacVim does not receive the command line
+" arguments you pass to it. You need to use a script, e.g. this one:
+"   https://gist.github.com/shakefu/3780676
+command! DFStartSession call DF_StartSessionFromArgument()
 
 function! DF_GetConfig()
     return s:config
@@ -222,7 +233,7 @@ function! DF_WriteBufferGroups()
             call add(ls, prefix.fnamemodify(bufname(item.bufnr), ':p'))
         endfor
     endfor
-    call writefile(ls, fnamemodify(s:config.session_save_directory . session_name, ':p'))
+    call writefile(ls, fnamemodify(s:config.session_save_directory . session_name . s:config.session_save_extension, ':p'))
 endfunction
 
 function! DF_ReadBufferGroups()
@@ -234,44 +245,13 @@ function! DF_ReadBufferGroups()
 
     let options = []
     for i in range(len(sessions))
-        call add(options, printf('%3d: %s', i+1, fnamemodify(sessions[i], ':p:t')))
+        call add(options, printf('%3d: %s', i+1, fnamemodify(sessions[i], ':p:t:r')))
     endfor
 
     let choice = inputlist(options)
     if choice < 1 || choice > len(options) | return | endif
 
-    let s:last_session = fnamemodify(sessions[choice-1], ':p:t')
-    let ls = readfile(sessions[choice-1])
-    let s:tabgroups = {}
-    let selected_group = ''
-    let selected_buffer = -1
-
-    for line in ls
-        let ch = line[0]
-        if ch ==# 'c' || ch ==# '_'
-            exe 'edit '.line[2:]
-            call DF_AddBufferToGroup(bufnr('%'), current_group)
-            if ch ==# 'c' | let selected_buffer = bufnr('%') | endif
-        elseif ch ==? 'g'
-            let current_group = line[2:]
-            if ch ==# 'G'
-                let selected_group = current_group
-            endif
-        elseif ch ==# 'p'
-            exe 'cd '.line[2:]
-        else
-            throw 'illegal format'
-        endif
-    endfor
-
-    if !empty(selected_group)
-        let s:highlighted_group = selected_group
-    endif
-    if selected_buffer != -1
-        exe 'buffer '.selected_buffer
-    endif
-    call DF_Enable()
-    call s:UpdateTabGroups()
+    call s:ParseSessionFile(sessions[choice-1])
 endfunction
 
 function! DF_GoToNextBuffer(forward, skip_groups)
@@ -592,6 +572,29 @@ function! DF_MinimalStatusLineInfo()
     return ''
 endfunction
 
+function! DF_StartSessionFromArgument()
+    let to_delete = bufnr('%')
+    let file_name = fnamemodify(argv(0), ':p')
+
+    let res = !empty(file_name) && s:ParseSessionFile(file_name)
+
+    if !res
+        let file_name = fnamemodify(s:config.session_save_directory . argv(0), ':p')
+        let res = !empty(file_name) && s:ParseSessionFile(file_name)
+    endif
+
+    if !res
+        let file_name = fnamemodify(s:config.session_save_directory . argv(0) . s:config.session_save_extension, ':p')
+        let res = !empty(file_name) && s:ParseSessionFile(file_name)
+    endif
+
+    if !res
+        echo 'Please provide absolute path to sessions outside of default save directory.'
+    else
+        exe 'bdelete '.to_delete
+    endif
+endfunction
+
 function! s:SetBufferGroupSyntax()
     syn clear
 
@@ -817,6 +820,45 @@ function! s:RemoveBufferFromGroup(bufnr, group)
     return 0
 endfunction
 
+function! s:ParseSessionFile(file_name)
+    let s:last_session = fnamemodify(a:file_name, ':p:t:r')
+    try
+        let ls = readfile(a:file_name)
+    catch 
+        return 0
+    endtry
+    let s:tabgroups = {}
+    let selected_group = ''
+    let selected_buffer = -1
+
+    for line in ls
+        let ch = line[0]
+        if ch ==# 'c' || ch ==# '_'
+            exe 'edit '.line[2:]
+            call DF_AddBufferToGroup(bufnr('%'), current_group)
+            if ch ==# 'c' | let selected_buffer = bufnr('%') | endif
+        elseif ch ==? 'g'
+            let current_group = line[2:]
+            if ch ==# 'G'
+                let selected_group = current_group
+            endif
+        elseif ch ==# 'p'
+            exe 'cd '.line[2:]
+        else
+            throw 'illegal format'
+        endif
+    endfor
+
+    if !empty(selected_group)
+        let s:highlighted_group = selected_group
+    endif
+    if selected_buffer != -1
+        exe 'buffer '.selected_buffer
+    endif
+    call DF_Enable()
+    call s:UpdateTabGroups()
+    return 1
+endfunction
 
 
 let s:transient_items_remain = 0
