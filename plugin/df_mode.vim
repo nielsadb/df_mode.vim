@@ -79,7 +79,7 @@
 " numbers!
 
 if exists("g:df_mode_version") || &cp
-    finish
+    " finish
 endif
 let g:df_mode_version = '0.95'
 
@@ -123,10 +123,12 @@ function! DF_GetConfig()
 endfunction
 
 function! DF_Redraw()
+    let s:force_update_of_statusline = 1
     call s:UpdateTabGroups()
 endfunction
 
 function! DF_Enable()
+    let s:force_update_of_statusline = 1
     let g:distraction_free_mode = 1
     colors dclear
     set laststatus=2
@@ -231,6 +233,7 @@ function! DF_WriteBufferGroups()
 endfunction
 
 function! DF_WriteBufferGroupsToFile(file_name)
+    let s:git_cwd = getcwd()
     let ls = ['p '.getcwd()]
     for [name, group] in items(s:tabgroups)
         if name ==# '#' | continue | endif
@@ -293,6 +296,7 @@ function! DF_ReadBufferGroupsFromFile(file_name)
             endif
         elseif ch ==# 'p'
             exe 'cd '.line[2:]
+            let s:git_cwd = getcwd()
         else
             throw 'illegal format'
         endif
@@ -601,7 +605,22 @@ endfunction
 function! DF_MinimalStatusLineInfo()
     if winnr('$') == 3
         if exists('b:rightwhitespacebuffer')
-            if !s:config.buffer_list_shown
+            if s:config.buffer_list_shown
+               if s:force_update_of_statusline
+                   let [code, out] = s:ExecGitCommand('branch')
+                   if code == 0
+                       let g:aap = split(out, '\n')
+                       for branch in split(out, '\n')
+                           if match(branch, '^\\* ')
+                               let s:force_update_of_statusline = 0
+                               let s:last_branch = branch[2:]
+                           endif
+                       endfor
+                   endif
+               endif
+               let pattern = '%'.winwidth('.').'s'
+               return printf(pattern, 'git '.(s:git_cwd == getcwd() ? '' : '!!! ').s:last_branch)
+            else
                 return fnamemodify(bufname(winbufnr(s:lastwindow)),':p:t')
             endif
         endif
@@ -875,12 +894,26 @@ function! s:RemoveBufferFromGroup(bufnr, group)
     return 0
 endfunction
 
+function! s:ExecGitCommand(cmd)
+    if !empty(s:git_cwd)
+        let cwd_invoked = getcwd()
+        exe 'cd '.s:git_cwd
+        let stdout = system('git '.a:cmd)
+        exe 'cd '.cwd_invoked
+        return [v:shell_error, stdout]
+    endif
+    return [-1, '']
+endfunction
+
 
 let s:transient_items_remain = 0
 let s:lastwindow = 1
-if !exists('s:last_session')      | let s:last_session = ''      | endif
-if !exists('s:tabgroups')         | let s:tabgroups = {}         | endif
-if !exists('s:highlighted_group') | let s:highlighted_group = '' | endif
+let s:force_update_of_statusline = 1
+let s:last_branch = ''
+if !exists('s:git_cwd')                    | let s:git_cwd = ''                   | endif
+if !exists('s:last_session')               | let s:last_session = ''              | endif
+if !exists('s:tabgroups')                  | let s:tabgroups = {}                 | endif
+if !exists('s:highlighted_group')          | let s:highlighted_group = ''         | endif
 
 
 
