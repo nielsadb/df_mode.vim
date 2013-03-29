@@ -4,6 +4,10 @@ Enhancements:
 - Make an optional feature to show (part of) the directory path of named buffers.
 - Make an optional feature to show uppercase marks in each buffer.
 - Maybe show the Current Working Directory somewhere.
+- Show modified state of a file (buffer, w.r.t. git index)
+  + = modified (as Vim)
+  . = modified w.r.t. git index (unstaged)
+  Merge status into extension view also.
 
 Next up:
 
