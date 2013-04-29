@@ -79,7 +79,7 @@
 " numbers!
 
 if exists("g:df_mode_version") || &cp
-    " finish
+    finish
 endif
 let g:df_mode_version = '0.95'
 
@@ -420,9 +420,9 @@ endif
 augroup END
 
 function! <SID>SetBufferGroupHighlighting()
-    hi TabGroupGroupPrefix         guibg=#ffffff guifg=#ffffff gui=underline
-    hi TabGroupTitle               guibg=#ffffff guifg=#ff0000 gui=underline
-    hi TabGroupTitleNC             guibg=#ffffff guifg=#aaaaaa gui=underline
+    hi TabGroupGroupPrefix         guibg=#ffffff guifg=#ffffff gui=none
+    hi TabGroupTitle               guibg=#ffffff guifg=#ff0000 gui=bold
+    hi TabGroupTitleNC             guibg=#ffffff guifg=#aaaaaa gui=bold
     hi TabGroupBufferNew           guifg=#33aa33
     hi TabGroupBufferCurrent       guifg=#000000 gui=bold
 
@@ -619,7 +619,7 @@ function! DF_MinimalStatusLineInfo()
                    endif
                endif
                let pattern = '%'.winwidth('.').'s'
-               return printf(pattern, 'git '.(s:git_cwd == getcwd() ? '' : '!!! ').s:last_branch)
+               return printf(pattern, '-b '.(s:git_cwd == getcwd() ? '' : '!!! ').s:last_branch)
             else
                 return fnamemodify(bufname(winbufnr(s:lastwindow)),':p:t')
             endif
