@@ -77,9 +77,14 @@
 " buffer_list_group_order_top_bottom
 " The order in which to show groups. Note that these must all be strings, not
 " numbers!
+"
+" color_theme
+" Color theme to use. Supported at the moment are:
+" 'light': based on bclear (theme: dclear)
+" 'dark_fancy': based on molokai (theme: molokai_df)
 
 if exists("g:df_mode_version") || &cp
-    finish
+    " finish
 endif
 let g:df_mode_version = '0.95'
 
@@ -102,6 +107,7 @@ let s:config = {
             \ 'additional_window_esc_closes_window':               1,
             \ 'buffer_list_group_order_top_bottom':
             \        map(range(1, 9), 'v:val.""') + ['0', '#'],
+            \ 'color_theme':                                       'dark_fancy'
             \ }
 
 if exists('g:df_session_save_directory')
@@ -130,7 +136,11 @@ endfunction
 function! DF_Enable()
     let s:force_update_of_statusline = 1
     let g:distraction_free_mode = 1
-    colors dclear
+    if s:config.color_theme == 'light'
+        colors dclear
+    else
+        colors molokai_df
+    endif
     set laststatus=2
     set statusline=%{DF_MinimalStatusLineInfo()}
     if s:config.additional_window_esc_closes_window
@@ -420,30 +430,47 @@ endif
 augroup END
 
 function! <SID>SetBufferGroupHighlighting()
-    hi TabGroupGroupPrefix         guibg=#ffffff guifg=#ffffff gui=none
-    hi TabGroupTitle               guibg=#ffffff guifg=#ff0000 gui=bold
-    hi TabGroupTitleNC             guibg=#ffffff guifg=#aaaaaa gui=bold
-    hi TabGroupBufferNew           guifg=#33aa33
-    hi TabGroupBufferCurrent       guifg=#000000 gui=bold
+    hi TabGroupGroupPrefix         guibg=bg guifg=bg gui=none
+    hi TabGroupGroupPrefix         guibg=bg guifg=bg gui=none
+    hi TabGroupTitle               guibg=bg guifg=#ff0000 gui=bold
+    hi TabGroupTitleNC             guibg=bg guifg=#aaaaaa gui=bold
+    hi TabGroupBufferCurrent       gui=bold
 
+    " Extension groups (current)
     hi TabGroupBufferCurrentExt    guifg=#aaaaaa
-    hi TabGroupRoot                guifg=#000000 gui=bold
-    hi TabGroupSelectedExtNext     guifg=#000000 gui=bold
-    hi TabGroupSelectedExtPrev     guifg=#000000 gui=bold
+    hi TabGroupRoot                guifg=fg gui=bold
+    hi TabGroupSelectedExtNext     guifg=fg gui=bold
+    hi TabGroupSelectedExtPrev     guifg=fg gui=bold
 
+    " Extension groups (not current)
     hi TabGroupBufferCurrentExtNC  guifg=#aaaaaa
-    hi TabGroupRootNC              guifg=#000000
-    hi TabGroupSelectedExtNextNC   guifg=#000000
-    hi TabGroupSelectedExtPrevNC   guifg=#000000
+    hi TabGroupRootNC              guifg=fg
+    hi TabGroupSelectedExtNextNC   guifg=fg
+    hi TabGroupSelectedExtPrevNC   guifg=fg
 
-    hi TabGroupBufferCurrentNC     guifg=#000000
-    hi TabGroupBufferDeleted       guifg=#aa3333
-    hi TabGroupBufferNC            guifg=#aaaaaa
-    hi TabGroupBufferNewNC         guifg=#aaaaaa gui=italic
+    hi TabGroupBufferCurrentNC     guifg=fg
 
-    hi TabGroupPrefix              guifg=bg guibg=bg
-    hi TabGroupExtensionSeparator  guifg=bg guibg=bg
-    hi NonText                     guifg=bg
+    if s:config.color_theme == 'light'
+        hi TabGroupBufferNew           guifg=#33aa33
+
+        hi TabGroupBufferDeleted       guifg=#aa3333
+        hi TabGroupBufferNC            guifg=#aaaaaa
+        hi TabGroupBufferNewNC         guifg=#aaaaaa gui=italic
+
+        hi TabGroupPrefix              guifg=bg guibg=bg
+        hi TabGroupExtensionSeparator  guifg=bg guibg=bg
+        hi NonText                     guifg=bg
+    else
+        hi TabGroupBufferNew           guifg=#33aa33
+
+        hi TabGroupBufferDeleted       guifg=#aa3333
+        hi TabGroupBufferNC            guifg=#aaaaaa
+        hi TabGroupBufferNewNC         guifg=#aaaaaa gui=italic
+
+        hi TabGroupPrefix              guifg=bg guibg=bg
+        hi TabGroupExtensionSeparator  guifg=bg guibg=bg
+        hi NonText                     guifg=bg
+    endif
 endfunction
 let s:config.set_buffer_groups_highlighting = function('<SID>SetBufferGroupHighlighting')
 
@@ -473,11 +500,16 @@ function! <SID>ChangedWindow()
     endif
     " TODO: use hi-link or at least some color scheme independent way.
     if winnr('$') == 3
-        hi StatusLine   guifg=#000000   guibg=#ffffff  gui=none
-        hi StatusLineNC guifg=#777777   guibg=#ffffff  gui=none
+        hi StatusLine   guifg=fg guibg=bg gui=none
+        hi StatusLineNC guifg=#777777 guibg=bg gui=none
     else
-        hi StatusLine   guifg=#ff0000   guibg=#eeeeee  gui=none
-        hi StatusLineNC guifg=#666666   guibg=#eeeeee  gui=italic
+        if s:config.color_theme == 'light'
+            hi StatusLine   guifg=#ff0000 guibg=#eeeeee gui=none
+            hi StatusLineNC guifg=#666666 guibg=#eeeeee gui=italic
+        else
+            hi StatusLine   guifg=#ff6666 guibg=#282828 gui=none
+            hi StatusLineNC guifg=#aaaaaa guibg=#282828 gui=italic
+        endif
     endif
     let &ro=&ro
 endfunction
