@@ -54,8 +54,27 @@ When you want to use sessions, be sure to set the saved session directory (see e
             call DF_GoToGroup(v:count, 0)
         endif
     endfunction
-    
-    nnoremap ,d        :call DF_Enable()<CR>
+
+    function! CycleColor()
+        let df_config = DF_GetConfig()
+        let themes = DF_GetSupportedColorThemes()
+        let index = (index(themes, df_config.color_theme) + 1) % len(themes)
+        let df_config.color_theme = themes[index]
+        call DF_Redraw()
+    endfunction
+
+    function! EnableDFMode()
+        try
+            " Set default here. This avoid annoying problems whem DF mode cannot be loaded.
+            let df_config = DF_GetConfig()
+            let df_config.color_theme = 'dark'
+            call DF_Enable()
+        catch /.*/
+            echo 'Something went wrong loading DF mode.'
+        endtry
+    endfunction
+
+    nnoremap ,d        :call EnableDFMode()<CR>
     nnoremap ,u        :call ToggleShowBufferGroups()<CR>
     nnoremap ,U        :call ToggleAlwaysShowUngrouped()<CR>
     nnoremap <Space>   :<C-u>call GoToNextBuffer(1, 0)<CR>:echo<CR>
@@ -65,6 +84,7 @@ When you want to use sessions, be sure to set the saved session directory (see e
     nnoremap ,R        :call DF_ReadBufferGroups()<CR>
     nnoremap ,W        :call DF_WriteBufferGroups()<CR>
     nnoremap ,DD       :call RemoveBuffersFromGroup()<CR>
+    nnoremap ,X        :call CycleColor()<CR>
     
     for i in range(1, 5)
         exe printf("nnoremap <D-%d> :call DF_ToggleBufferInGroup(bufnr('%%'), %d)<CR>", i, i)
@@ -76,6 +96,15 @@ When you want to use sessions, be sure to set the saved session directory (see e
     """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 Note: I find 5 groups to be more than enough. You can change the range if you feel you need more/less.
+
+## Color Themes
+
+The default theme is a black-on-white theme based on bclear. Recently two dark
+themes were added, one based on molokai and one on twilight. Here is a comarison.
+
+![Light theme](https://raw.github.com/nielsadb/df_mode.vim/master/screenshot2.png)
+![Molokai based](https://raw.github.com/nielsadb/df_mode.vim/master/screenshot3.png)
+![Twilight based](https://raw.github.com/nielsadb/df_mode.vim/master/screenshot4.png)
 
 ## Settings Description
 

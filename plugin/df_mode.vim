@@ -79,10 +79,8 @@
 " numbers!
 "
 " color_theme
-" Color theme to use. Supported at the moment are:
-" 'light': based on bclear (theme: dclear)
-" 'dark': based on twilight (theme: twilight_df)
-" 'dark_fancy': based on molokai (theme: molokai_df)
+" Color theme to use.
+" See DF_GetSupportedColorThemes() for list of supported themes.
 " Light is the default since that used to be the only theme.
 
 if exists("g:df_mode_version") || &cp
