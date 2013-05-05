@@ -81,7 +81,9 @@
 " color_theme
 " Color theme to use. Supported at the moment are:
 " 'light': based on bclear (theme: dclear)
+" 'dark': based on twilight (theme: twilight_df)
 " 'dark_fancy': based on molokai (theme: molokai_df)
+" Light is the default since that used to be the only theme.
 
 if exists("g:df_mode_version") || &cp
     " finish
@@ -91,6 +93,12 @@ let g:df_mode_version = '0.95'
 function! DF_Dump()
     echo s:tabgroups
 endfunction
+
+let s:themes = {
+            \ 'light':      {'source': 'dclear',      'background': 'light'},
+            \ 'dark':       {'source': 'twilight_df', 'background': 'dark'},
+            \ 'dark_fancy': {'source': 'molokai_df',  'background': 'dark'}
+            \ }
 
 let s:config = {
             \ 'main_window_target_width':                          100,
@@ -107,7 +115,7 @@ let s:config = {
             \ 'additional_window_esc_closes_window':               1,
             \ 'buffer_list_group_order_top_bottom':
             \        map(range(1, 9), 'v:val.""') + ['0', '#'],
-            \ 'color_theme':                                       'dark_fancy'
+            \ 'color_theme':                                       'dark'
             \ }
 
 if exists('g:df_session_save_directory')
@@ -130,17 +138,13 @@ endfunction
 
 function! DF_Redraw()
     let s:force_update_of_statusline = 1
+    call s:SetColors()
     call s:UpdateTabGroups()
 endfunction
 
 function! DF_Enable()
     let s:force_update_of_statusline = 1
     let g:distraction_free_mode = 1
-    if s:config.color_theme == 'light'
-        colors dclear
-    else
-        colors molokai_df
-    endif
     set laststatus=2
     set statusline=%{DF_MinimalStatusLineInfo()}
     if s:config.additional_window_esc_closes_window
@@ -181,9 +185,6 @@ function! DF_Enable()
             let b:rightwhitespacebuffer = 1
         endif
 
-        call s:SetBufferGroupSyntax()
-        call s:config.set_buffer_groups_highlighting()
-
         wincmd L
         call s:SetWindowWidth(float2nr(0.70 * slack))
         wincmd h
@@ -192,6 +193,7 @@ function! DF_Enable()
         wincmd l
     end
 
+    call s:SetColors()
     call s:UpdateTabGroups()
 endfunction
 
@@ -408,6 +410,9 @@ function! DF_GetHighlighed()
     return [s:highlighted_group, s:highlighted_buffer]
 endfunction
 
+function! DF_GetSupportedColorThemes()
+    return keys(s:themes)
+endfunction
 
 
 augroup DistractionFree
@@ -430,8 +435,6 @@ endif
 augroup END
 
 function! <SID>SetBufferGroupHighlighting()
-    hi TabGroupGroupPrefix         guibg=bg guifg=bg gui=none
-    hi TabGroupGroupPrefix         guibg=bg guifg=bg gui=none
     hi TabGroupTitle               guibg=bg guifg=#ff0000 gui=bold
     hi TabGroupTitleNC             guibg=bg guifg=#aaaaaa gui=bold
     hi TabGroupBufferCurrent       gui=bold
@@ -450,27 +453,18 @@ function! <SID>SetBufferGroupHighlighting()
 
     hi TabGroupBufferCurrentNC     guifg=fg
 
-    if s:config.color_theme == 'light'
-        hi TabGroupBufferNew           guifg=#33aa33
+    " Transient colors
+    hi TabGroupBufferNew           guifg=#33aa33
+    hi TabGroupBufferDeleted       guifg=#aa3333
 
-        hi TabGroupBufferDeleted       guifg=#aa3333
-        hi TabGroupBufferNC            guifg=#aaaaaa
-        hi TabGroupBufferNewNC         guifg=#aaaaaa gui=italic
+    " Generic colors (suprisingly theme-agnostic)
+    hi TabGroupBufferNC            guifg=#aaaaaa
+    hi TabGroupBufferNewNC         guifg=#aaaaaa gui=italic
 
-        hi TabGroupPrefix              guifg=bg guibg=bg
-        hi TabGroupExtensionSeparator  guifg=bg guibg=bg
-        hi NonText                     guifg=bg
-    else
-        hi TabGroupBufferNew           guifg=#33aa33
-
-        hi TabGroupBufferDeleted       guifg=#aa3333
-        hi TabGroupBufferNC            guifg=#aaaaaa
-        hi TabGroupBufferNewNC         guifg=#aaaaaa gui=italic
-
-        hi TabGroupPrefix              guifg=bg guibg=bg
-        hi TabGroupExtensionSeparator  guifg=bg guibg=bg
-        hi NonText                     guifg=bg
-    endif
+    " Hiding stuff
+    hi TabGroupGroupPrefix         guibg=bg guifg=bg gui=none
+    hi TabGroupPrefix              guifg=bg guibg=bg
+    hi TabGroupExtensionSeparator  guifg=bg guibg=bg
 endfunction
 let s:config.set_buffer_groups_highlighting = function('<SID>SetBufferGroupHighlighting')
 
@@ -892,6 +886,19 @@ function! s:RenderTabGroups()
         exe 'setlocal tw='.(winwidth('.') + s:config.buffer_list_alignment_and_margin)
         1,$right
     endif
+endfunction
+
+function! s:SetColors()
+    exe 'colors '.s:themes[s:config.color_theme].source
+    for i in range(1, winnr('$'))
+        if getbufvar(winbufnr(i), 'rightwhitespacebuffer') == 1
+            let source = winnr()
+            exe i.'wincmd w'
+            call s:SetBufferGroupSyntax()
+            call s:config.set_buffer_groups_highlighting()
+            exe source.'wincmd w'
+        endif
+    endfor
 endfunction
 
 function! s:UpdateTabGroups()
