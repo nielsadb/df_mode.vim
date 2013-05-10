@@ -412,6 +412,21 @@ function! DF_GetSupportedColorThemes()
     return keys(s:themes)
 endfunction
 
+function! DF_GetReddishColor()
+    if exists('g:df_mode_reddish') && g:df_mode_colors_based_on == g:colors_name
+        return g:df_mode_reddish
+    else
+        return 'fg'
+    endif
+endfunction
+
+function! DF_GetGreenishColor()
+    if exists('g:df_mode_greenish') && g:df_mode_colors_based_on == g:colors_name
+        return g:df_mode_greenish
+    else
+        return 'fg'
+    endif
+endfunction
 
 augroup DistractionFree
     au!
@@ -951,6 +966,4 @@ if !exists('s:git_cwd')                    | let s:git_cwd = ''                 
 if !exists('s:last_session')               | let s:last_session = ''              | endif
 if !exists('s:tabgroups')                  | let s:tabgroups = {}                 | endif
 if !exists('s:highlighted_group')          | let s:highlighted_group = ''         | endif
-
-
 

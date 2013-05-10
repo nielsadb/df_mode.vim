@@ -15,7 +15,10 @@ let colors_name = "twilight"
 let s:grey_blue = '#8a9597'
 let s:light_grey_blue = '#a0a8b0'
 let s:dark_grey_blue = '#34383c'
-let s:mid_grey_blue = '#64686c'
+" More readable comments. Style and function go hand in hand.
+" let s:mid_grey_blue = '#64686c'     " original value
+" let s:mid_grey_blue = '#707579'     " lighter alternative
+let s:mid_grey_blue = '#7d8286'
 let s:beige = '#ceb67f'
 let s:light_orange = '#ebc471'
 let s:yellow = '#e3d796'
@@ -28,6 +31,11 @@ let s:darkgrey = '#1a1a1a'
 let s:grey = '#303030'
 let s:lightgrey = '#605958'
 let s:white = '#fffedc'
+
+" This was never easier...
+let g:df_mode_greenish = s:green
+let g:df_mode_reddish = s:red
+let g:df_mode_colors_based_on = g:colors_name
 
 if version >= 700
   hi CursorLine guibg=#262626

@@ -11,6 +11,10 @@ if exists("syntax_on")
 endif
 let g:colors_name = "dclear"
 
+let g:df_mode_reddish = '#a00050'
+let g:df_mode_greenish = '#3c960f'
+let g:df_mode_colors_based_on = g:colors_name
+
 "---GUI settings
 hi SpecialKey   guifg=#000000   guibg=#ffcde6
 hi NonText      guibg=#ffffff   guifg=#dddddd

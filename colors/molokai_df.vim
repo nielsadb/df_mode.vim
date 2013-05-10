@@ -29,6 +29,10 @@ else
     let s:molokai_original = 0
 endif
 
+let g:df_mode_greenish = "#a6e22e"
+let g:df_mode_reddish = "#F92672"
+let g:df_mode_colors_based_on = g:colors_name
+
 hi Boolean         guifg=#AE81FF
 hi Character       guifg=#E6DB74
 hi Number          guifg=#AE81FF
@@ -119,7 +123,10 @@ if s:molokai_original == 1
    hi NonText         guifg=bg
 else
    hi Normal          guifg=#F8F8F2 guibg=#1B1D1E
-   hi Comment         guifg=#465457
+   " What is it with cool color themes and unreadable comments?
+   " hi Comment         guifg=#465457 " original
+   " hi Comment         guifg=#5d6f73 " ligher alternative
+   hi Comment         guifg=#516265
    " This has nothing to do with distraction free mode, I just happen to use
    " cursorline and I find comments almost unreadble with the molokai
    " CursorLine colors.
