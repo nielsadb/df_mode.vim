@@ -84,7 +84,7 @@
 " Light is the default since that used to be the only theme.
 
 if exists("g:df_mode_version") || &cp
-    " finish
+    finish
 endif
 let g:df_mode_version = '0.95'
 
@@ -249,9 +249,8 @@ function! DF_WriteBufferGroupsToFile(file_name)
         if name ==# '#' | continue | endif
         let prefix = name ==# s:highlighted_group ? 'G ' : 'g '
         call add(ls, prefix.name)
-        " TODO: write the last visited buffer to the file?
-        " Not really useful since you don't change the buffer list often.
         for [bufnr, item] in items(group.bufs)
+            if item.deleted | continue | endif
             let prefix = bufnr == bufnr('%') ? 'c ' : '_ '
             call add(ls, prefix.fnamemodify(bufname(item.bufnr), ':p'))
         endfor
