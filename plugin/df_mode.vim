@@ -87,6 +87,8 @@ if exists("g:df_mode_version") || &cp
     finish
 endif
 let g:df_mode_version = '0.95'
+" Will switch to 1 when DF_Enable is called the first time.
+let g:distraction_free_mode = 0
 
 function! DF_Dump()
     echo s:tabgroups
@@ -136,13 +138,12 @@ endfunction
 
 function! DF_Redraw()
     let s:force_update_of_statusline = 1
-    call s:SetColors()
+    call s:SetColors(0)
     call s:UpdateTabGroups()
 endfunction
 
 function! DF_Enable()
     let s:force_update_of_statusline = 1
-    let g:distraction_free_mode = 1
     set laststatus=2
     set statusline=%{DF_MinimalStatusLineInfo()}
     if s:config.additional_window_esc_closes_window
@@ -191,7 +192,8 @@ function! DF_Enable()
         wincmd l
     end
 
-    call s:SetColors()
+    call s:SetColors(g:distraction_free_mode)
+    let g:distraction_free_mode = 1
     call s:UpdateTabGroups()
 endfunction
 
@@ -900,8 +902,17 @@ function! s:RenderTabGroups()
     endif
 endfunction
 
-function! s:SetColors()
-    exe 'colors '.s:themes[s:config.color_theme].source
+function! s:SetColors(preserve_colors)
+    let target_colors = s:config.color_theme
+    " Preserve color scheme if it is known to this plug-in.
+    if exists('g:colors_name') && a:preserve_colors
+        for name in keys(s:themes)
+            if s:themes[name].source == g:colors_name
+                let target_colors = name
+            endif
+        endfor
+    endif
+    exe 'colors '.s:themes[target_colors].source
     for i in range(1, winnr('$'))
         if getbufvar(winbufnr(i), 'rightwhitespacebuffer') == 1
             let source = winnr()
