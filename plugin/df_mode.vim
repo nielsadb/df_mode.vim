@@ -266,7 +266,11 @@ function! DF_WriteBufferGroupsToFile(file_name)
 endfunction
 
 function! DF_ReadBufferGroups()
-    let sessions = glob(s:config.session_save_directory . '*', 0, 1)
+    if has('win32')
+        let sessions = split(glob(s:config.session_save_directory . '*'), '\n')
+    else
+        let sessions = glob(s:config.session_save_directory . '*', 0, 1)
+    endif
     if empty(sessions)
         echo 'No sessions saved.'
         return
@@ -515,15 +519,17 @@ function! <SID>ChangedWindow()
             hi StatusLine   guifg=#ff0000 guibg=#eeeeee gui=none
             hi StatusLineNC guifg=#666666 guibg=#eeeeee gui=italic
         else
-            hi StatusLine   guifg=#ff6666 guibg=#282828 gui=none
-            hi StatusLineNC guifg=#aaaaaa guibg=#282828 gui=italic
+            hi StatusLine   guifg=#ff6666 guibg=#383838 gui=none
+            hi StatusLineNC guifg=#aaaaaa guibg=#383838 gui=none
         endif
     endif
     let &ro=&ro
 endfunction
 
 function! <SID>CloseWindow()
-    if !exists('b:whitespacebuffer') && winnr('$') > 3 | wincmd c | endif
+    if !exists('b:whitespacebuffer') && winnr('$') > 3
+        wincmd c
+    endif
 endfunction
 
 function! <SID>WipeWhitespaceBuffers()
@@ -642,11 +648,13 @@ function! s:MakeWhiteSpaceBuffer()
     hi NonText guifg=bg
 endfunction
 
+let s:try_git = 1
 function! DF_MinimalStatusLineInfo()
     if winnr('$') == 3
         if exists('b:rightwhitespacebuffer')
             if s:config.buffer_list_shown
-               if s:force_update_of_statusline
+               let pattern = '%'.winwidth('.').'s'
+               if s:force_update_of_statusline && s:try_git
                    let [code, out] = s:ExecGitCommand('branch')
                    if code == 0
                        let g:aap = split(out, '\n')
@@ -656,10 +664,12 @@ function! DF_MinimalStatusLineInfo()
                                let s:last_branch = branch[2:]
                            endif
                        endfor
+                       return printf(pattern, '-b '.(s:git_cwd == getcwd() ? '' : '!!! ').s:last_branch)
+                   else
+                       let s:try_git = 0
+                       return printf(pattern, ' ')
                    endif
                endif
-               let pattern = '%'.winwidth('.').'s'
-               return printf(pattern, '-b '.(s:git_cwd == getcwd() ? '' : '!!! ').s:last_branch)
             else
                 return fnamemodify(bufname(winbufnr(s:lastwindow)),':p:t')
             endif
@@ -769,7 +779,7 @@ function! <SID>SortExtensions(a, b)
     if a:a == a:b | return 0 | endif
     let aa = a:a.extension
     let bb = a:b.extension
-    return aa ==# bb ? (a:a > a:b ? 1 : -1) : aa > bb ? 1 : -1
+    return aa ==# bb ? 0 : aa > bb ? 1 : -1
 endfunction
 
 function! s:RenderSingleLine(bufnr, group, alignment)
