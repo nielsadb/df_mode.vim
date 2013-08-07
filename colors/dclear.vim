@@ -17,7 +17,8 @@ let g:df_mode_colors_based_on = g:colors_name
 
 "---GUI settings
 hi SpecialKey   guifg=#000000   guibg=#ffcde6
-hi NonText      guibg=#ffffff   guifg=#dddddd
+" hi NonText      guibg=#ffffff   guifg=#dddddd
+hi NonText      guifg=bg
 hi Directory    guifg=#78681a
 hi ErrorMsg     guifg=#ffffff   guibg=#a01010
 hi IncSearch    guifg=#ffffff   guibg=#ff8000   gui=none

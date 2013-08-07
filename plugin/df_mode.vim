@@ -841,20 +841,28 @@ function! s:RenderTabGroups()
         " Group all buffers in a group by root. This allows displaying all
         " buffers with the same root name in a single line later.
         let byroot = {}
+        " We need a bufnr to determine ordering later. The routine
+        " <SID>SortBuffers needs numbers, not fragments of names. We store the
+        " first buffer nr for each root.
+        let first_bufnr_to_root = {}
         let unnamed = []
         for bufnr in keys(s:tabgroups[group].bufs)
             let root = fnamemodify(bufname(str2nr(bufnr)), ':p:t:r')
             if !empty(root)
                 let extension = fnamemodify(bufname(str2nr(bufnr)), ':p:t:e')
                 if empty(extension) | let extension = '___' | endif
-                if !has_key(byroot, root) | let byroot[root] = [] | endif
+                if !has_key(byroot, root)
+                    let byroot[root] = []
+                    let first_bufnr_to_root[bufnr] = root
+                endif
                 call add(byroot[root], {'extension': extension, 'bufnr': bufnr})
             else
                 call add(unnamed, bufnr)
             endif
         endfor
 
-        for root in sort(keys(byroot), '<SID>SortBuffers')
+        for root_bufnr in sort(keys(first_bufnr_to_root), '<SID>SortBuffers')
+            let root = first_bufnr_to_root[root_bufnr]
             let sorted_extensions = sort(byroot[root], '<SID>SortExtensions')
             if len(sorted_extensions) == 1 || !s:config.buffer_list_group_files_with_same_root
                 for ext in sorted_extensions
