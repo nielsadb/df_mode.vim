@@ -115,7 +115,8 @@ let s:config = {
             \ 'additional_window_esc_closes_window':               1,
             \ 'buffer_list_group_order_top_bottom':
             \        map(range(1, 9), 'v:val.""') + ['0', '#'],
-            \ 'color_theme':                                       'dark'
+            \ 'color_theme':                                       'dark',
+            \ 'dual_pane_mode':                                    0
             \ }
 
 if exists('g:df_session_save_directory')
@@ -142,6 +143,56 @@ function! DF_Redraw()
     call s:UpdateTabGroups()
 endfunction
 
+function! s:MakeSingleWindowLayout(existing_left_buffer, existing_right_buffer)
+    let slack = &columns - s:config.main_window_target_width
+    if slack > s:config.single_window_if_less_than_N_columns_left
+        if a:existing_left_buffer
+            wincmd v
+            exe 'buffer '.a:existing_left_buffer
+            normal! gg"_dG
+        else
+            vnew
+            call s:MakeWhiteSpaceBuffer()
+            let b:leftwhitespacebuffer = 1
+        endif
+        if a:existing_right_buffer
+            wincmd v
+            exe 'buffer '.a:existing_right_buffer
+            normal! gg"_dG
+        else
+            vnew
+            call s:MakeWhiteSpaceBuffer()
+            let b:rightwhitespacebuffer = 1
+        endif
+        wincmd L
+        call s:SetWindowWidth(float2nr(0.70 * slack))
+        wincmd h
+        wincmd h
+        call s:SetWindowWidth(float2nr(0.30 * slack))
+        wincmd l
+    end
+endfunction
+
+function! s:MakeDualWindowLayout(existing_left_buffer, existing_right_buffer)
+    wincmd v
+    if a:existing_right_buffer
+        wincmd v
+        exe 'buffer '.a:existing_right_buffer
+        normal! gg"_dG
+    else
+        vnew
+        call s:MakeWhiteSpaceBuffer()
+        let b:rightwhitespacebuffer = 1
+    endif
+    wincmd L
+    call s:SetWindowWidth(1)
+    wincmd h
+    call s:SetWindowWidth(float2nr(0.5 * &columns))
+    wincmd h
+    call s:SetWindowWidth(float2nr(0.5 * &columns))
+    wincmd l
+endfunction
+
 function! DF_Enable()
     let s:force_update_of_statusline = 1
     set laststatus=2
@@ -150,8 +201,8 @@ function! DF_Enable()
         nnoremap <Esc> :call <SID>CloseWindow()<CR>:echo<CR>
     endif
 
-    let slack = &columns - s:config.main_window_target_width
     " Note that this will obliterate buffers with bufhidden=wipe.
+    " The whitespace buffer have bufhidden=hide for re-use.
     silent! wincmd o
 
     let existing_left_buffer = 0
@@ -160,36 +211,13 @@ function! DF_Enable()
         if getbufvar(b, 'leftwhitespacebuffer')
             let existing_left_buffer = b
         elseif getbufvar(b, 'rightwhitespacebuffer')
-            let existing_right_buffer = b
+            let a:existing_right_buffer = b
         endif
     endfor
-
-    if slack > s:config.single_window_if_less_than_N_columns_left
-        if existing_left_buffer
-            wincmd v
-            exe 'buffer '.existing_left_buffer
-            normal! gg"_dG
-        else
-            vnew
-            call s:MakeWhiteSpaceBuffer()
-            let b:leftwhitespacebuffer = 1
-        endif
-        if existing_right_buffer
-            wincmd v
-            exe 'buffer '.existing_right_buffer
-            normal! gg"_dG
-        else
-            vnew
-            call s:MakeWhiteSpaceBuffer()
-            let b:rightwhitespacebuffer = 1
-        endif
-
-        wincmd L
-        call s:SetWindowWidth(float2nr(0.70 * slack))
-        wincmd h
-        wincmd h
-        call s:SetWindowWidth(float2nr(0.30 * slack))
-        wincmd l
+    if s:config.dual_pane_mode
+        call s:MakeDualWindowLayout(existing_left_buffer, existing_right_buffer)
+    else
+        call s:MakeSingleWindowLayout(existing_left_buffer, existing_right_buffer)
     end
 
     call s:SetColors(g:distraction_free_mode)
@@ -455,9 +483,9 @@ augroup END
 function! <SID>SetBufferGroupHighlighting()
     hi TabGroupTitle               guibg=bg guifg=#ff0000 gui=bold
     hi TabGroupTitleNC             guibg=bg guifg=#aaaaaa gui=bold
-    hi TabGroupBufferCurrent       gui=bold
 
     " Extension groups (current)
+    hi TabGroupBufferCurrent       guifg=#ff0000
     hi TabGroupBufferCurrentExt    guifg=#aaaaaa
     hi TabGroupRoot                guifg=fg gui=bold
     hi TabGroupSelectedExtNext     guifg=fg gui=bold
@@ -469,9 +497,9 @@ function! <SID>SetBufferGroupHighlighting()
     hi TabGroupSelectedExtNextNC   guifg=fg
     hi TabGroupSelectedExtPrevNC   guifg=fg
 
-    hi TabGroupBufferCurrentNC     guifg=fg
+    hi TabGroupBufferCurrentNC     guifg=#ffffff
 
-    " Transient colors
+    " Transient colors (new is no longer used)
     hi TabGroupBufferNew           guifg=#33aa33
     hi TabGroupBufferDeleted       guifg=#aa3333
 
@@ -511,7 +539,7 @@ function! <SID>ChangedWindow()
         let s:lastwindow = winnr()
     endif
     " TODO: use hi-link or at least some color scheme independent way.
-    if winnr('$') == 3
+    if winnr('$') == 3 && !s:config.dual_pane_mode
         hi StatusLine   guifg=fg guibg=bg gui=none
         hi StatusLineNC guifg=#777777 guibg=bg gui=none
     else
@@ -519,8 +547,8 @@ function! <SID>ChangedWindow()
             hi StatusLine   guifg=#ff0000 guibg=#eeeeee gui=none
             hi StatusLineNC guifg=#666666 guibg=#eeeeee gui=italic
         else
-            hi StatusLine   guifg=#ff6666 guibg=#383838 gui=none
-            hi StatusLineNC guifg=#aaaaaa guibg=#383838 gui=none
+            hi StatusLine   guifg=#ff0000 guibg=#222222 gui=none
+            hi StatusLineNC guifg=#aaaaaa guibg=#222222 gui=none
         endif
     endif
     let &ro=&ro
@@ -650,7 +678,7 @@ endfunction
 
 let s:try_git = 1
 function! DF_MinimalStatusLineInfo()
-    if winnr('$') == 3
+    if winnr('$') == 3 && !s:config.dual_pane_mode
         if exists('b:rightwhitespacebuffer')
             if s:config.buffer_list_shown
                let pattern = '%'.winwidth('.').'s'
@@ -789,8 +817,11 @@ function! s:RenderSingleLine(bufnr, group, alignment)
         let s:transient_items_remain = 1
     elseif item.bufnr == s:highlighted_buffer
         let prefix = s:highlighted_group == a:group ? 'C' : 'c'
+    elseif index(s:highliggted_others, item.bufnr) != -1
+        let prefix = 'c'
     elseif item.added && s:SecondsSince(item.added_time) < (&ut / 1000)
-        let prefix = 'a'
+        " new is no longer used. To restore, use this line: let prefix = 'a'
+        let prefix = '_'
         let s:transient_items_remain = 1
     else
         let prefix = '_'
@@ -902,7 +933,7 @@ function! s:RenderTabGroups()
                 endwhile
 
                 let exts = join(parts, '')
-                call append(line('$'), printf('%s%s %s [%s]', alignment, prefix, root, exts))
+                call append(line('$'), printf('%s%s%s %s [%s]', alignment, prefix, root, exts))
             endif
         endfor
         for bufnr in unnamed
@@ -944,6 +975,12 @@ endfunction
 
 function! s:UpdateTabGroups()
     let s:highlighted_buffer = bufnr('%')
+    let s:highliggted_others = []
+    for w in range(1, winnr('$'))
+        if winbufnr(w) != bufnr('%')
+            call add(s:highliggted_others, winbufnr(w))
+        end
+    endfor
     let from_window = winnr()
     let right_window = 0
     for i in range(1, winnr('$'))
