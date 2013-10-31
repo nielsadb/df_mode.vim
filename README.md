@@ -67,7 +67,7 @@ When you want to use sessions, be sure to set the saved session directory (see e
         try
             " Set default here. This avoid annoying problems whem DF mode cannot be loaded.
             let df_config = DF_GetConfig()
-            let df_config.color_theme = 'dark'
+            let df_config.color_theme = 'solarized_light'
             call DF_Enable()
         catch /.*/
             echo 'Something went wrong loading DF mode.'
@@ -99,12 +99,16 @@ Note: I find 5 groups to be more than enough. You can change the range if you fe
 
 ## Color Themes
 
-The default theme is a black-on-white theme based on bclear. Recently two dark
-themes were added, one based on molokai and one on twilight. Here is a comarison.
+This plugin is more or less color scheme agnostic now. By default the following themes are supported: solarized (light/dark), bclear, molokai and twilight.
 
-![Light theme](https://raw.github.com/nielsadb/df_mode.vim/master/screenshot2.png)
-![Molokai based](https://raw.github.com/nielsadb/df_mode.vim/master/screenshot3.png)
-![Twilight based](https://raw.github.com/nielsadb/df_mode.vim/master/screenshot4.png)
+![bclear](https://raw.github.com/nielsadb/df_mode.vim/master/screenshot2.png)
+![Molokai](https://raw.github.com/nielsadb/df_mode.vim/master/screenshot3.png)
+![Twilight](https://raw.github.com/nielsadb/df_mode.vim/master/screenshot4.png)
+![Solarized Light](https://raw.github.com/nielsadb/df_mode.vim/master/screenshot5.png)
+![Solarized Dark](https://raw.github.com/nielsadb/df_mode.vim/master/screenshot6.png)
+
+You will need to install these color themes yourself, DFmode no longer comes
+with modified color themes.
 
 ## Settings Description
 

@@ -95,10 +95,15 @@ function! DF_Dump()
 endfunction
 
 let s:themes = {
-            \ 'light':      {'source': 'dclear',      'background': 'light'},
-            \ 'dark':       {'source': 'twilight_df', 'background': 'dark'},
-            \ 'dark_fancy': {'source': 'molokai_df',  'background': 'dark'}
+            \ 'bclear':          {'source': 'bclear',    'background': 'light'},
+            \ 'twilight':        {'source': 'twilight',  'background': 'dark'},
+            \ 'molokai':         {'source': 'molokai',   'background': 'dark'},
+            \ 'solarized_light': {'source': 'solarized', 'background': 'light'},
+            \ 'solarized_dark':  {'source': 'solarized', 'background': 'dark'}
             \ }
+
+function! Nop()
+endfunction
 
 let s:config = {
             \ 'main_window_target_width':                          100,
@@ -115,8 +120,12 @@ let s:config = {
             \ 'additional_window_esc_closes_window':               1,
             \ 'buffer_list_group_order_top_bottom':
             \        map(range(1, 9), 'v:val.""') + ['0', '#'],
-            \ 'color_theme':                                       'dark',
-            \ 'dual_pane_mode':                                    0
+            \ 'color_theme':                                       'solarized_light',
+            \ 'dual_pane_mode':                                    0,
+            \ 'blist_bindings': {
+            \   'l': 'call DF_Smaller_BList()<CR>',
+            \   'h': 'call DF_Bigger_BList()<CR>'
+            \   }
             \ }
 
 if exists('g:df_session_save_directory')
@@ -481,11 +490,12 @@ endif
 augroup END
 
 function! <SID>SetBufferGroupHighlighting()
-    hi TabGroupTitle               guibg=bg guifg=#ff0000 gui=bold
-    hi TabGroupTitleNC             guibg=bg guifg=#aaaaaa gui=bold
+    hi TabGroupTitle               gui=bold
+    hi TabGroupTitleNC             guifg=#aaaaaa gui=bold
 
     " Extension groups (current)
-    hi TabGroupBufferCurrent       guifg=#ff0000
+    " hi TabGroupBufferCurrent       gui=bold,underline
+    hi link TabGroupBufferCurrent  Title
     hi TabGroupBufferCurrentExt    guifg=#aaaaaa
     hi TabGroupRoot                guifg=fg gui=bold
     hi TabGroupSelectedExtNext     guifg=fg gui=bold
@@ -962,6 +972,14 @@ function! s:SetColors(preserve_colors)
         endfor
     endif
     exe 'colors '.s:themes[target_colors].source
+    exe 'set background='.s:themes[target_colors].background
+    hi VertSplit guibg=bg guifg=bg
+    hi NonText guibg=bg guifg=bg
+    if s:themes[target_colors].background == 'light'
+        hi LineNr guibg=bg guifg=#cccccc
+    else
+        hi LineNr guibg=bg guifg=#666666
+    end
     for i in range(1, winnr('$'))
         if getbufvar(winbufnr(i), 'rightwhitespacebuffer') == 1
             let source = winnr()
