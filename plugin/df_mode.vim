@@ -943,7 +943,7 @@ function! s:RenderTabGroups()
                 endwhile
 
                 let exts = join(parts, '')
-                call append(line('$'), printf('%s%s%s %s [%s]', alignment, prefix, root, exts))
+                call append(line('$'), printf('%s%s %s [%s]', alignment, prefix, root, exts))
             endif
         endfor
         for bufnr in unnamed
@@ -966,7 +966,7 @@ function! s:SetColors(preserve_colors)
     " Preserve color scheme if it is known to this plug-in.
     if exists('g:colors_name') && a:preserve_colors
         for name in keys(s:themes)
-            if s:themes[name].source == g:colors_name
+            if s:themes[name].source == g:colors_name && &bg==s:themes[name].background
                 let target_colors = name
             endif
         endfor
