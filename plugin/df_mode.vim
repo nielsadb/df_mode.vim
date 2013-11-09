@@ -507,7 +507,7 @@ function! <SID>SetBufferGroupHighlighting()
     hi TabGroupSelectedExtNextNC   guifg=fg
     hi TabGroupSelectedExtPrevNC   guifg=fg
 
-    hi TabGroupBufferCurrentNC     guifg=#ffffff
+    hi link TabGroupBufferCurrentNC     Type
 
     " Transient colors (new is no longer used)
     hi TabGroupBufferNew           guifg=#33aa33
