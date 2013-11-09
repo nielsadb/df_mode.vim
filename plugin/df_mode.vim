@@ -495,17 +495,17 @@ function! <SID>SetBufferGroupHighlighting()
 
     " Extension groups (current)
     " hi TabGroupBufferCurrent       gui=bold,underline
-    hi link TabGroupBufferCurrent  Title
-    hi TabGroupBufferCurrentExt    guifg=#aaaaaa
-    hi TabGroupRoot                guifg=fg gui=bold
-    hi TabGroupSelectedExtNext     guifg=fg gui=bold
-    hi TabGroupSelectedExtPrev     guifg=fg gui=bold
+    hi link TabGroupBufferCurrent    Title
+    hi TabGroupBufferCurrentExt      gui=none
+    hi link TabGroupRoot             Title
+    hi link TabGroupSelectedExtNext  Title
+    hi link TabGroupSelectedExtPrev  Title
 
     " Extension groups (not current)
-    hi TabGroupBufferCurrentExtNC  guifg=#aaaaaa
-    hi TabGroupRootNC              guifg=fg
-    hi TabGroupSelectedExtNextNC   guifg=fg
-    hi TabGroupSelectedExtPrevNC   guifg=fg
+    hi TabGroupBufferCurrentExtNC    guifg=#aaaaaa
+    hi TabGroupRootNC                guifg=fg
+    hi TabGroupSelectedExtNextNC     guifg=fg
+    hi TabGroupSelectedExtPrevNC     guifg=fg
 
     hi link TabGroupBufferCurrentNC     Type
 
